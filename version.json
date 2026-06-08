@@ -1,5 +1,5 @@
-{
-  "version": "1.2",
-  "download_url": "https://github.com/vitorcs-editor/phoenix-phasecancel/releases/latest",
-  "changelog": "Versao inicial publica"
+﻿{
+    "download_url":  "https://github.com/vitorcs-editor/phoenix-phasecancel/releases/latest",
+    "changelog":  "v1.3 - Compressao com GPU NVIDIA (NVENC), multiplos videos simultaneos, pasta comprimidos automatica, sem CMD piscando, notificacao ao concluir, margem de segurança no tamanho alvo",
+    "version":  "1.3"
 }
