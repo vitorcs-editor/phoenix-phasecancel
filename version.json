@@ -1,5 +1,5 @@
-﻿{
-    "download_url":  "https://github.com/vitorcs-editor/phoenix-phasecancel/releases/latest",
-    "changelog":  "v1.3 - Compressao com GPU NVIDIA (NVENC), multiplos videos simultaneos, pasta comprimidos automatica, sem CMD piscando, notificacao ao concluir, margem de segurança no tamanho alvo",
-    "version":  "1.3"
+{
+    "version": "1.4",
+    "download_url": "https://github.com/vitorcs-editor/phoenix-phasecancel/releases/latest",
+    "changelog": "v1.4 - Configuracao MiniMax agora abre em janela propria dentro da aba Processar. Campo DESTINO corrigido. Corrigido erro requests no .exe."
 }
