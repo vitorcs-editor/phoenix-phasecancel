@@ -1,5 +1,5 @@
 {
-    "version": "1.4",
+    "version": "1.5",
     "download_url": "https://github.com/vitorcs-editor/phoenix-phasecancel/releases/latest",
-    "changelog": "v1.4 - Configuracao MiniMax agora abre em janela propria dentro da aba Processar. Campo DESTINO corrigido. Corrigido erro requests no .exe."
+    "changelog": "v1.5 - Corrigido audio estranho em videos longos: overlay white safe agora cicla pelos 8 arquivos do nicho com fade suave nas emendas."
 }
