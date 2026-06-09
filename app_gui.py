@@ -26,7 +26,7 @@ from tkinterdnd2 import TkinterDnD, DND_FILES
 NO_WINDOW = 0x08000000
 
 # ── Versão ────────────────────────────────────────────────────────────────────
-APP_VERSION = "1.4"
+APP_VERSION = "1.5"
 VERSION_URL = "https://raw.githubusercontent.com/vitorcs-editor/phoenix-phasecancel/main/version.json"
 
 # ── Caminhos ─────────────────────────────────────────────────────────────────
@@ -333,19 +333,40 @@ def load_wav_mono_i16(path):
     return samples
 
 def pick_white_loop(target_len, niche):
+    """Monta overlay ciclando pelos arquivos disponíveis com fade suave nas emendas."""
     niche_dir  = WHITES_ROOT / niche
     candidates = sorted(niche_dir.glob("*.wav"))
     if not candidates:
         raise RuntimeError(f"Audios do nicho '{niche}' nao encontrados.")
-    chosen = random.choice(candidates)
-    white  = load_wav_mono_i16(chosen)
-    wlen   = len(white)
+
+    FADE = int(SAMPLE_RATE * 0.4)   # 0.4s de fade nas emendas
+
+    # Começa por um arquivo aleatório e cicla pelos demais em ordem
+    start = random.randint(0, len(candidates) - 1)
+    ordered = candidates[start:] + candidates[:start]
+
     result = arr_mod.array('h')
-    full, rest = divmod(target_len, wlen)
-    for _ in range(full):
-        result.extend(white)
-    result.extend(white[:rest])
-    return result, chosen.name
+    idx    = 0
+    first_name = ordered[0].name
+
+    while len(result) < target_len:
+        seg = list(load_wav_mono_i16(ordered[idx % len(ordered)]))
+        slen = len(seg)
+        fade = min(FADE, slen // 4)
+
+        # Fade-in no início do segmento
+        for i in range(fade):
+            seg[i] = _clip(int(seg[i] * i / fade))
+
+        # Fade-out no final do segmento
+        for i in range(fade):
+            seg[slen - 1 - i] = _clip(int(seg[slen - 1 - i] * i / fade))
+
+        result.extend(arr_mod.array('h', seg))
+        idx += 1
+
+    del result[target_len:]
+    return result, first_name
 
 def write_stereo_wav(path, L, R):
     interleaved = arr_mod.array('h', [_clip(v) for pair in zip(L, R) for v in pair])
