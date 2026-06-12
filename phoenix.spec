@@ -16,6 +16,7 @@ a = Analysis(
         (str(BASE / "scripts" / "diabetes"),        "scripts/diabetes"),
         (str(BASE / "scripts" / "emagrecimento"),   "scripts/emagrecimento"),
         (str(BASE / "scripts" / "neuropatia"),      "scripts/neuropatia"),
+        (str(BASE / "scripts" / "memoria"),         "scripts/memoria"),
     ],
     hiddenimports=["tkinter", "tkinter.ttk", "tkinter.filedialog", "tkinter.messagebox",
                    "requests", "requests.adapters", "requests.auth", "requests.compat",

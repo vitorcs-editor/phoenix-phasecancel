@@ -26,7 +26,7 @@ from tkinterdnd2 import TkinterDnD, DND_FILES
 NO_WINDOW = 0x08000000
 
 # ── Versão ────────────────────────────────────────────────────────────────────
-APP_VERSION = "1.5"
+APP_VERSION = "1.6"
 VERSION_URL = "https://raw.githubusercontent.com/vitorcs-editor/phoenix-phasecancel/main/version.json"
 
 # ── Caminhos ─────────────────────────────────────────────────────────────────
@@ -44,7 +44,7 @@ CONFIG_FILE  = USER_DATA / "config.json"
 SCRIPTS_ROOT = BUNDLE_DIR / "scripts"
 FFMPEG_BIN   = BUNDLE_DIR / "ffmpeg.exe"
 
-for n in ["ed", "diabetes", "emagrecimento", "neuropatia"]:
+for n in ["ed", "diabetes", "emagrecimento", "neuropatia", "memoria"]:
     (WHITES_ROOT / n).mkdir(parents=True, exist_ok=True)
 
 # ── Configurações ─────────────────────────────────────────────────────────────
@@ -52,7 +52,7 @@ WHITE_GAIN_DB  = -28.0
 SAMPLE_RATE    = 44100
 AUDIO_BITRATE  = "128k"
 VIDEO_EXTS     = {".mp4", ".mkv", ".mov", ".avi", ".m4v", ".webm"}
-VALID_NICHES   = ["ed", "diabetes", "emagrecimento", "neuropatia"]
+VALID_NICHES   = ["ed", "diabetes", "emagrecimento", "neuropatia", "memoria"]
 MINIMAX_HOST   = "https://api.minimax.io"
 MINIMAX_MODEL  = "speech-02-hd"
 
@@ -114,6 +114,7 @@ NICHE_LABELS = {
     "diabetes":      "Diabetes",
     "emagrecimento": "Emagrecimento",
     "neuropatia":    "Neuropatia",
+    "memoria":       "MM",
 }
 
 VOICE_POOL = [
