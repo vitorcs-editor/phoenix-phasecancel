@@ -1,5 +1,5 @@
 {
-    "version": "1.5",
+    "version": "1.6",
     "download_url": "https://github.com/vitorcs-editor/phoenix-phasecancel/releases/latest",
-    "changelog": "v1.5 - Corrigido audio estranho em videos longos: overlay white safe agora cicla pelos 8 arquivos do nicho com fade suave nas emendas."
+    "changelog": "v1.6 - Novo nicho MM (Memoria) com 8 scripts white safe sobre saude cognitiva, foco e concentracao."
 }
