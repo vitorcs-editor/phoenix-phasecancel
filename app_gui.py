@@ -20,13 +20,15 @@ import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 
 import requests
+import customtkinter as ctk
+ctk.set_appearance_mode("dark")
 from tkinterdnd2 import TkinterDnD, DND_FILES
 
 # Oculta janela CMD em todos os subprocessos no Windows
 NO_WINDOW = 0x08000000
 
 # ── Versão ────────────────────────────────────────────────────────────────────
-APP_VERSION = "1.6"
+APP_VERSION = "1.7"
 VERSION_URL = "https://raw.githubusercontent.com/vitorcs-editor/phoenix-phasecancel/main/version.json"
 
 # ── Caminhos ─────────────────────────────────────────────────────────────────
@@ -416,298 +418,287 @@ def process_one(video_path, niche):
     return fad_out, fadw_out, False  # False = processado agora
 
 
-# ── Widgets auxiliares ────────────────────────────────────────────────────────
+# ── CTk constants ─────────────────────────────────────────────────────────────
 
-def make_btn(parent, text, command, bg=None, fg="white", font_size=10,
-             bold=False, pady=8, padx=12, state="normal", width=None):
-    bg = bg or COLORS["btn"]
-    f = ("Segoe UI", font_size, "bold" if bold else "normal")
-    btn = tk.Button(parent, text=text, command=command,
-                    bg=bg, fg=fg, font=f, relief="flat",
-                    cursor="hand2", pady=pady, padx=padx,
-                    state=state, width=width)
-    hover_bg = COLORS["btn_hover"] if bg == COLORS["btn"] else COLORS["panel"]
-    btn.bind("<Enter>", lambda e: btn.config(bg=hover_bg) if btn["state"] == "normal" else None)
-    btn.bind("<Leave>", lambda e: btn.config(bg=bg) if btn["state"] == "normal" else None)
-    return btn
+_ORANGE       = "#F07800"
+_ORANGE_HOVER = "#D96800"
+_NAVY         = "#0B1630"
+_PANEL        = "#111F45"
+_PANEL2       = "#0D1A3A"
+_BORDER       = "#1A2D5A"
+_WHITE        = "#FFFFFF"
+_SUBTEXT      = "#7A8AAD"
+_SUCCESS      = "#2ECC71"
+_ERROR        = "#E74C3C"
+_WARNING      = "#F5A623"
 
+LABEL_TO_NICHE = {v: k for k, v in NICHE_LABELS.items()}
 
 # ── App Principal ─────────────────────────────────────────────────────────────
 
-class App(TkinterDnD.Tk):
+class App(ctk.CTk, TkinterDnD.DnDWrapper):
     def __init__(self):
         super().__init__()
+        self.TkdndVersion = TkinterDnD._require(self)
         self.title("Phoenix PhaseCancel")
-        self.geometry("720x640")
-        self.minsize(640, 580)
-        self.configure(bg=COLORS["bg"])
+        self.geometry("780x740")
+        self.minsize(680, 640)
+        self.configure(fg_color=_NAVY)
         self.resizable(True, True)
 
         cfg = load_config()
-        self.videos      = []
-        self.pasta_atual = tk.StringVar(value="Nenhum video selecionado")
-        self.niche_var   = tk.StringVar(value=cfg.get("last_niche", "ed"))
-        self.status_var  = tk.StringVar(value="Aguardando...")
-        self.processando = False
-
-        style = ttk.Style()
-        style.theme_use("default")
-        style.configure("TNotebook", background=COLORS["bg"], borderwidth=0)
-        style.configure("TNotebook.Tab",
-                        background=COLORS["border"], foreground=COLORS["subtext"],
-                        padding=[16, 8], font=("Segoe UI", 10))
-        style.map("TNotebook.Tab",
-                  background=[("selected", COLORS["panel"])],
-                  foreground=[("selected", COLORS["text"])])
-        style.configure("TProgressbar",
-                        troughcolor=COLORS["panel"],
-                        background=COLORS["accent"], thickness=8)
+        self.videos        = []
+        self.niche_var     = tk.StringVar(value=cfg.get("last_niche", "ed"))
+        self.status_var    = tk.StringVar(value="Aguardando...")
+        self.processando   = False
+        self._progress_max = 1
 
         # Header
-        tk.Frame(self, bg=COLORS["accent"], height=4).pack(fill="x")
-        hf = tk.Frame(self, bg=COLORS["bg"], pady=14)
-        hf.pack(fill="x", padx=30)
-        tk.Label(hf, text="Phoenix PhaseCancel",
-                 font=("Segoe UI", 20, "bold"),
-                 bg=COLORS["bg"], fg=COLORS["text"]).pack(side="left", anchor="w")
-        tk.Label(hf, text=f"v{APP_VERSION}",
-                 font=("Segoe UI", 9),
-                 bg=COLORS["bg"], fg=COLORS["subtext"]).pack(side="left", anchor="s", padx=(8, 0), pady=(0, 3))
-        self.btn_update = make_btn(hf, "Verificar atualizacao",
-                                   self._verificar_atualizacao,
-                                   bg=COLORS["border"], fg=COLORS["subtext"],
-                                   font_size=9, pady=4, padx=10)
-        self.btn_update.pack(side="right", anchor="e")
+        tk.Frame(self, bg=_ORANGE, height=3).pack(fill="x")
+        hf = ctk.CTkFrame(self, fg_color="transparent", corner_radius=0)
+        hf.pack(fill="x", padx=24, pady=(14, 8))
+        lbl_row = ctk.CTkFrame(hf, fg_color="transparent")
+        lbl_row.pack(side="left", anchor="w")
+        ctk.CTkLabel(lbl_row, text="🔥  Phoenix PhaseCancel",
+                     font=ctk.CTkFont("Segoe UI", 20, "bold"),
+                     text_color=_WHITE).pack(side="left")
+        ctk.CTkLabel(lbl_row, text=f"  v{APP_VERSION}",
+                     font=ctk.CTkFont("Segoe UI", 9),
+                     text_color=_SUBTEXT).pack(side="left", pady=(4, 0))
+        self.btn_update = ctk.CTkButton(
+            hf, text="Verificar atualização",
+            command=self._verificar_atualizacao,
+            fg_color=_BORDER, hover_color=_PANEL, text_color=_SUBTEXT,
+            font=ctk.CTkFont("Segoe UI", 9), corner_radius=20, height=30, width=170)
+        self.btn_update.pack(side="right")
 
-        self.nb = ttk.Notebook(self)
-        self.nb.pack(fill="both", expand=True, padx=20, pady=(0, 16))
+        # Tabs
+        self.tabs = ctk.CTkTabview(
+            self, fg_color=_PANEL,
+            segmented_button_fg_color=_NAVY,
+            segmented_button_selected_color=_ORANGE,
+            segmented_button_selected_hover_color=_ORANGE_HOVER,
+            segmented_button_unselected_color=_BORDER,
+            segmented_button_unselected_hover_color="#1E3566",
+            text_color=_WHITE, corner_radius=12, border_width=0)
+        self.tabs.pack(fill="both", expand=True, padx=16, pady=(0, 16))
+        self.tabs.add("  Processar  ")
+        self.tabs.add("  Comprimir  ")
 
-        self._build_tab_processar()
-        self._build_tab_comprimir()
-
+        self._build_tab_processar(self.tabs.tab("  Processar  "))
+        self._build_tab_comprimir(self.tabs.tab("  Comprimir  "))
         self._check_ffmpeg()
-        self._atualizar_status_config()
 
     # ── Aba Processar ────────────────────────────────────────────────────────
 
-    def _build_tab_processar(self):
-        frame = tk.Frame(self.nb, bg=COLORS["bg"])
-        self.nb.add(frame, text="  Processar  ")
+    def _build_tab_processar(self, frame):
+        frame.configure(fg_color=_PANEL)
 
-        # Drop zone + seleção
-        pf = tk.Frame(frame, bg=COLORS["panel"], pady=16, padx=20)
-        pf.pack(fill="x", padx=20, pady=(16, 8))
-        tk.Label(pf, text="VIDEOS",
-                 font=("Segoe UI", 9, "bold"),
-                 bg=COLORS["panel"], fg=COLORS["subtext"]).pack(anchor="w")
+        # Videos card
+        vc = ctk.CTkFrame(frame, fg_color=_PANEL2, corner_radius=12)
+        vc.pack(fill="x", padx=16, pady=(14, 6))
+        ctk.CTkLabel(vc, text="VÍDEOS",
+                     font=ctk.CTkFont("Segoe UI", 9, "bold"),
+                     text_color=_SUBTEXT).pack(anchor="w", padx=16, pady=(12, 4))
 
-        # Drop zone
-        self.drop_zone = tk.Label(pf,
-                                  text="Arraste os videos aqui  ou",
-                                  font=("Segoe UI", 10),
-                                  bg=COLORS["border"], fg=COLORS["subtext"],
-                                  pady=18, relief="flat", cursor="hand2")
-        self.drop_zone.pack(fill="x", pady=(8, 0))
+        self.drop_zone = ctk.CTkLabel(
+            vc, text="  Arraste os vídeos aqui   ou",
+            font=ctk.CTkFont("Segoe UI", 10), text_color=_SUBTEXT,
+            fg_color=_BORDER, corner_radius=8, height=52, cursor="hand2")
+        self.drop_zone.pack(fill="x", padx=16, pady=(0, 8))
         self.drop_zone.drop_target_register(DND_FILES)
         self.drop_zone.dnd_bind("<<Drop>>", self._on_drop)
 
-        btn_row_sel = tk.Frame(pf, bg=COLORS["panel"])
-        btn_row_sel.pack(fill="x", pady=(8, 0))
-        make_btn(btn_row_sel, "  Selecionar Videos  ", self._selecionar_videos,
-                 pady=8, padx=12).pack(side="left")
-        make_btn(btn_row_sel, "  Limpar  ", self._limpar_videos,
-                 bg=COLORS["border"], fg=COLORS["subtext"],
-                 pady=8, padx=12).pack(side="left", padx=(8, 0))
+        br1 = ctk.CTkFrame(vc, fg_color="transparent")
+        br1.pack(fill="x", padx=16, pady=(0, 12))
+        ctk.CTkButton(br1, text="Selecionar Vídeos", command=self._selecionar_videos,
+                      fg_color=_ORANGE, hover_color=_ORANGE_HOVER,
+                      font=ctk.CTkFont("Segoe UI", 10, "bold"),
+                      corner_radius=8, height=34).pack(side="left")
+        ctk.CTkButton(br1, text="Limpar", command=self._limpar_videos,
+                      fg_color=_BORDER, hover_color="#1E3566", text_color=_SUBTEXT,
+                      font=ctk.CTkFont("Segoe UI", 10),
+                      corner_radius=8, height=34).pack(side="left", padx=(8, 0))
 
-        self.lbl_contagem = tk.Label(frame, text="",
-                                     font=("Segoe UI", 10),
-                                     bg=COLORS["bg"], fg=COLORS["subtext"])
-        self.lbl_contagem.pack(anchor="w", padx=20)
+        self.lbl_contagem = ctk.CTkLabel(frame, text="",
+                                          font=ctk.CTkFont("Segoe UI", 9),
+                                          text_color=_SUBTEXT)
+        self.lbl_contagem.pack(anchor="w", padx=16, pady=(2, 0))
 
-        # Nicho
-        nf = tk.Frame(frame, bg=COLORS["panel"], pady=16, padx=20)
-        nf.pack(fill="x", padx=20, pady=8)
-        tk.Label(nf, text="NICHO",
-                 font=("Segoe UI", 9, "bold"),
-                 bg=COLORS["panel"], fg=COLORS["subtext"]).pack(anchor="w")
-        row2 = tk.Frame(nf, bg=COLORS["panel"])
-        row2.pack(fill="x", pady=(8, 0))
-        self.nicho_btns = {}
-        for niche in VALID_NICHES:
-            btn = tk.Button(row2, text=NICHE_LABELS[niche],
-                            command=lambda n=niche: self._set_niche(n),
-                            bg=COLORS["border"], fg=COLORS["subtext"],
-                            font=("Segoe UI", 10), relief="flat",
-                            cursor="hand2", padx=16, pady=8, width=12)
-            btn.pack(side="left", padx=(0, 8))
-            self.nicho_btns[niche] = btn
-        self._set_niche(self.niche_var.get())
+        # Nicho card
+        nc = ctk.CTkFrame(frame, fg_color=_PANEL2, corner_radius=12)
+        nc.pack(fill="x", padx=16, pady=6)
+        ctk.CTkLabel(nc, text="NICHO",
+                     font=ctk.CTkFont("Segoe UI", 9, "bold"),
+                     text_color=_SUBTEXT).pack(anchor="w", padx=16, pady=(12, 6))
 
-        # Link configuração MiniMax
-        cfg_row = tk.Frame(nf, bg=COLORS["panel"])
-        cfg_row.pack(fill="x", pady=(10, 0))
-        tk.Button(cfg_row, text="  ⚙  Configurar MiniMax  ",
-                  command=self._open_config_modal,
-                  bg=COLORS["border"], fg=COLORS["subtext"],
-                  font=("Segoe UI", 9), relief="flat",
-                  cursor="hand2", bd=0,
-                  activebackground=COLORS["bg"],
-                  activeforeground=COLORS["text"]).pack(side="right")
+        self.niche_seg = ctk.CTkSegmentedButton(
+            nc, values=[NICHE_LABELS[n] for n in VALID_NICHES],
+            command=self._on_niche_change,
+            fg_color=_BORDER, selected_color=_ORANGE,
+            selected_hover_color=_ORANGE_HOVER,
+            unselected_color=_BORDER, unselected_hover_color="#1E3566",
+            text_color=_WHITE,
+            font=ctk.CTkFont("Segoe UI", 10, "bold"),
+            corner_radius=8, height=36)
+        self.niche_seg.pack(fill="x", padx=16, pady=(0, 6))
+        self.niche_seg.set(NICHE_LABELS[self.niche_var.get()])
 
-        # Progresso
-        pbar_frame = tk.Frame(frame, bg=COLORS["bg"])
-        pbar_frame.pack(fill="x", padx=20, pady=(8, 0))
-        self.progress = ttk.Progressbar(pbar_frame, mode="determinate")
-        self.progress.pack(fill="x")
-        self.lbl_status = tk.Label(frame, textvariable=self.status_var,
-                                   font=("Segoe UI", 10),
-                                   bg=COLORS["bg"], fg=COLORS["subtext"])
-        self.lbl_status.pack(anchor="w", padx=20, pady=(4, 0))
+        ctk.CTkButton(nc, text="⚙   Configurar MiniMax",
+                      command=self._open_config_modal,
+                      fg_color="transparent", hover_color=_BORDER,
+                      text_color=_SUBTEXT, font=ctk.CTkFont("Segoe UI", 9),
+                      anchor="e", height=26, corner_radius=6).pack(
+                          anchor="e", padx=16, pady=(0, 10))
+
+        # Progress + status
+        self.progress = ctk.CTkProgressBar(
+            frame, fg_color=_BORDER, progress_color=_ORANGE,
+            corner_radius=4, height=6)
+        self.progress.pack(fill="x", padx=16, pady=(6, 0))
+        self.progress.set(0)
+
+        self.lbl_status = ctk.CTkLabel(
+            frame, text="Aguardando...",
+            font=ctk.CTkFont("Segoe UI", 9), text_color=_SUBTEXT)
+        self.lbl_status.pack(anchor="w", padx=16, pady=(3, 0))
+        self.status_var.trace_add("write", lambda *_: self.after(
+            0, lambda: self.lbl_status.configure(text=self.status_var.get())))
 
         # Log
-        lf = tk.Frame(frame, bg=COLORS["panel"])
-        lf.pack(fill="both", expand=True, padx=20, pady=8)
-        self.log_text = tk.Text(lf, height=6,
-                                bg=COLORS["panel"], fg=COLORS["text"],
-                                font=("Consolas", 9), relief="flat",
-                                bd=0, state="disabled", wrap="word")
-        sc = tk.Scrollbar(lf, command=self.log_text.yview)
-        self.log_text.configure(yscrollcommand=sc.set)
-        self.log_text.pack(side="left", fill="both", expand=True, padx=10, pady=8)
-        sc.pack(side="right", fill="y")
+        self.log_text = ctk.CTkTextbox(
+            frame, fg_color=_PANEL2, text_color="#CBD5E1",
+            font=ctk.CTkFont("Consolas", 9), corner_radius=10,
+            border_width=0, state="disabled", wrap="word")
+        self.log_text.pack(fill="both", expand=True, padx=16, pady=8)
 
         # Botões
-        br = tk.Frame(frame, bg=COLORS["bg"])
-        br.pack(fill="x", padx=20, pady=(0, 16))
-        self.btn_processar = make_btn(br, "PROCESSAR",
-                                      self._iniciar_processamento,
-                                      font_size=13, bold=True,
-                                      pady=14, state="disabled")
+        br = ctk.CTkFrame(frame, fg_color="transparent")
+        br.pack(fill="x", padx=16, pady=(0, 14))
+        self.btn_processar = ctk.CTkButton(
+            br, text="PROCESSAR", command=self._iniciar_processamento,
+            fg_color=_ORANGE, hover_color=_ORANGE_HOVER,
+            font=ctk.CTkFont("Segoe UI", 13, "bold"),
+            corner_radius=10, height=46, state="disabled")
         self.btn_processar.pack(side="left", fill="x", expand=True, padx=(0, 8))
-        self.btn_abrir = make_btn(br, "Abrir Processados",
-                                  self._abrir_processados,
-                                  bg=COLORS["border"], fg=COLORS["subtext"],
-                                  pady=14, state="disabled")
+        self.btn_abrir = ctk.CTkButton(
+            br, text="Abrir Processados", command=self._abrir_processados,
+            fg_color=_BORDER, hover_color="#1E3566", text_color=_SUBTEXT,
+            font=ctk.CTkFont("Segoe UI", 10),
+            corner_radius=10, height=46, state="disabled")
         self.btn_abrir.pack(side="left")
 
     # ── Modal Configuração MiniMax ───────────────────────────────────────────
 
     def _open_config_modal(self):
-        """Abre janela de configuração MiniMax (modal). Foca se já estiver aberta."""
         if hasattr(self, "_config_modal") and self._config_modal and \
                 self._config_modal.winfo_exists():
-            self._config_modal.lift()
-            self._config_modal.focus_force()
-            return
+            self._config_modal.lift(); self._config_modal.focus_force(); return
 
-        win = tk.Toplevel(self)
-        win.title("Configuracao MiniMax — Hack de Audio")
-        win.configure(bg=COLORS["bg"])
+        win = ctk.CTkToplevel(self)
+        win.title("Configuração MiniMax — Hack de Áudio")
+        win.configure(fg_color=_NAVY)
         win.resizable(False, False)
-        win.geometry("520x640")
-        win.grab_set()          # bloqueia a janela principal enquanto aberta
+        win.geometry("520x660")
+        win.grab_set()
         self._config_modal = win
 
-        # ── Título ────────────────────────────────────────────────────────────
-        tk.Label(win, text="Credenciais MiniMax",
-                 font=("Segoe UI", 14, "bold"),
-                 bg=COLORS["bg"], fg=COLORS["text"]).pack(anchor="w", padx=24, pady=(20, 4))
-        tk.Label(win,
-                 text="Crie sua conta em minimax.io/platform e cole as credenciais abaixo.",
-                 font=("Segoe UI", 10),
-                 bg=COLORS["bg"], fg=COLORS["subtext"]).pack(anchor="w", padx=24)
+        ctk.CTkLabel(win, text="Credenciais MiniMax",
+                     font=ctk.CTkFont("Segoe UI", 15, "bold"),
+                     text_color=_WHITE).pack(anchor="w", padx=24, pady=(20, 2))
+        ctk.CTkLabel(win,
+                     text="Crie sua conta em minimax.io/platform e cole as credenciais abaixo.",
+                     font=ctk.CTkFont("Segoe UI", 10),
+                     text_color=_SUBTEXT, wraplength=460).pack(anchor="w", padx=24)
 
-        cf = tk.Frame(win, bg=COLORS["panel"], pady=20, padx=20)
-        cf.pack(fill="x", padx=24, pady=16)
+        cf = ctk.CTkFrame(win, fg_color=_PANEL, corner_radius=12)
+        cf.pack(fill="x", padx=24, pady=14)
 
-        tk.Label(cf, text="API KEY",
-                 font=("Segoe UI", 9, "bold"),
-                 bg=COLORS["panel"], fg=COLORS["subtext"]).pack(anchor="w")
-        self.entry_apikey = tk.Entry(cf, font=("Segoe UI", 10),
-                                     bg=COLORS["border"], fg=COLORS["text"],
-                                     insertbackground="white", relief="flat", show="*")
-        self.entry_apikey.pack(fill="x", pady=(4, 12), ipady=8)
+        ctk.CTkLabel(cf, text="API KEY",
+                     font=ctk.CTkFont("Segoe UI", 9, "bold"),
+                     text_color=_SUBTEXT).pack(anchor="w", padx=16, pady=(12, 2))
+        self.entry_apikey = ctk.CTkEntry(cf, fg_color=_BORDER, text_color=_WHITE,
+                                          border_color=_BORDER, show="*",
+                                          font=ctk.CTkFont("Segoe UI", 10),
+                                          height=36, corner_radius=8)
+        self.entry_apikey.pack(fill="x", padx=16, pady=(0, 10))
 
-        tk.Label(cf, text="GROUP ID  (numero longo 18-19 digitos)",
-                 font=("Segoe UI", 9, "bold"),
-                 bg=COLORS["panel"], fg=COLORS["subtext"]).pack(anchor="w")
-        self.entry_groupid = tk.Entry(cf, font=("Segoe UI", 10),
-                                      bg=COLORS["border"], fg=COLORS["text"],
-                                      insertbackground="white", relief="flat")
-        self.entry_groupid.pack(fill="x", pady=(4, 0), ipady=8)
+        ctk.CTkLabel(cf, text="GROUP ID  (número longo 18-19 dígitos)",
+                     font=ctk.CTkFont("Segoe UI", 9, "bold"),
+                     text_color=_SUBTEXT).pack(anchor="w", padx=16)
+        self.entry_groupid = ctk.CTkEntry(cf, fg_color=_BORDER, text_color=_WHITE,
+                                           border_color=_BORDER,
+                                           font=ctk.CTkFont("Segoe UI", 10),
+                                           height=36, corner_radius=8)
+        self.entry_groupid.pack(fill="x", padx=16, pady=(2, 0))
 
-        btn_row_cred = tk.Frame(cf, bg=COLORS["panel"])
-        btn_row_cred.pack(fill="x", pady=(16, 0))
-        make_btn(btn_row_cred, "Salvar", self._salvar_credenciais,
-                 pady=10).pack(side="left")
-        make_btn(btn_row_cred, "Testar Credenciais", self._testar_credenciais,
-                 bg=COLORS["border"], fg=COLORS["text"],
-                 pady=10).pack(side="left", padx=(8, 0))
+        br_cred = ctk.CTkFrame(cf, fg_color="transparent")
+        br_cred.pack(fill="x", padx=16, pady=(12, 14))
+        ctk.CTkButton(br_cred, text="Salvar", command=self._salvar_credenciais,
+                      fg_color=_ORANGE, hover_color=_ORANGE_HOVER,
+                      font=ctk.CTkFont("Segoe UI", 10, "bold"),
+                      corner_radius=8, height=34).pack(side="left")
+        ctk.CTkButton(br_cred, text="Testar Credenciais",
+                      command=self._testar_credenciais,
+                      fg_color=_BORDER, hover_color="#1E3566", text_color=_SUBTEXT,
+                      font=ctk.CTkFont("Segoe UI", 10),
+                      corner_radius=8, height=34).pack(side="left", padx=(8, 0))
 
-        # Status credenciais + saldo
-        status_row = tk.Frame(win, bg=COLORS["bg"])
-        status_row.pack(fill="x", padx=24)
-        self.lbl_cred_status = tk.Label(status_row, text="",
-                                        font=("Segoe UI", 10),
-                                        bg=COLORS["bg"])
+        sr = ctk.CTkFrame(win, fg_color="transparent")
+        sr.pack(fill="x", padx=24)
+        self.lbl_cred_status = ctk.CTkLabel(sr, text="",
+                                             font=ctk.CTkFont("Segoe UI", 10),
+                                             text_color=_WHITE)
         self.lbl_cred_status.pack(side="left")
-        self.lbl_balance = tk.Label(status_row, text="",
-                                    font=("Segoe UI", 10),
-                                    bg=COLORS["bg"], fg=COLORS["subtext"])
-        self.lbl_balance.pack(side="left", padx=(16, 0))
+        self.lbl_balance = ctk.CTkLabel(sr, text="",
+                                         font=ctk.CTkFont("Segoe UI", 10),
+                                         text_color=_SUBTEXT)
+        self.lbl_balance.pack(side="left", padx=(12, 0))
 
-        # Separador
-        tk.Frame(win, bg=COLORS["border"], height=1).pack(fill="x", padx=24, pady=16)
+        ctk.CTkFrame(win, fg_color=_BORDER, height=1, corner_radius=0).pack(
+            fill="x", padx=24, pady=12)
 
-        tk.Label(win, text="Gerar Audios White Safe",
-                 font=("Segoe UI", 14, "bold"),
-                 bg=COLORS["bg"], fg=COLORS["text"]).pack(anchor="w", padx=24)
-        tk.Label(win,
-                 text="Gera 32 audios via MiniMax TTS (~$7, feito uma unica vez).",
-                 font=("Segoe UI", 10),
-                 bg=COLORS["bg"], fg=COLORS["subtext"]).pack(anchor="w", padx=24, pady=(4, 12))
+        ctk.CTkLabel(win, text="Gerar Áudios White Safe",
+                     font=ctk.CTkFont("Segoe UI", 14, "bold"),
+                     text_color=_WHITE).pack(anchor="w", padx=24)
+        ctk.CTkLabel(win,
+                     text="Gera 32 áudios via MiniMax TTS (~$7, feito uma única vez).",
+                     font=ctk.CTkFont("Segoe UI", 10),
+                     text_color=_SUBTEXT).pack(anchor="w", padx=24, pady=(4, 10))
 
-        # Status por nicho
-        status_frame = tk.Frame(win, bg=COLORS["panel"], pady=12, padx=20)
-        status_frame.pack(fill="x", padx=24)
+        sf = ctk.CTkFrame(win, fg_color=_PANEL, corner_radius=12)
+        sf.pack(fill="x", padx=24)
         self.nicho_status_labels = {}
-        row = tk.Frame(status_frame, bg=COLORS["panel"])
-        row.pack(fill="x")
+        nr = ctk.CTkFrame(sf, fg_color="transparent")
+        nr.pack(fill="x", padx=12, pady=10)
         for niche in VALID_NICHES:
-            col = tk.Frame(row, bg=COLORS["panel"])
+            col = ctk.CTkFrame(nr, fg_color="transparent")
             col.pack(side="left", expand=True)
-            tk.Label(col, text=NICHE_LABELS[niche],
-                     font=("Segoe UI", 9, "bold"),
-                     bg=COLORS["panel"], fg=COLORS["subtext"]).pack()
-            lbl = tk.Label(col, text="—",
-                           font=("Segoe UI", 9),
-                           bg=COLORS["panel"], fg=COLORS["subtext"])
+            ctk.CTkLabel(col, text=NICHE_LABELS[niche],
+                         font=ctk.CTkFont("Segoe UI", 9, "bold"),
+                         text_color=_SUBTEXT).pack()
+            lbl = ctk.CTkLabel(col, text="—",
+                               font=ctk.CTkFont("Segoe UI", 9),
+                               text_color=_SUBTEXT)
             lbl.pack()
             self.nicho_status_labels[niche] = lbl
 
-        # Log geração
-        lf2 = tk.Frame(win, bg=COLORS["panel"])
-        lf2.pack(fill="both", expand=True, padx=24, pady=12)
-        self.gen_log = tk.Text(lf2, height=5,
-                               bg=COLORS["panel"], fg=COLORS["text"],
-                               font=("Consolas", 9), relief="flat",
-                               bd=0, state="disabled", wrap="word")
-        sc2 = tk.Scrollbar(lf2, command=self.gen_log.yview)
-        self.gen_log.configure(yscrollcommand=sc2.set)
-        self.gen_log.pack(side="left", fill="both", expand=True, padx=10, pady=8)
-        sc2.pack(side="right", fill="y")
+        self.gen_log = ctk.CTkTextbox(win, fg_color=_PANEL, text_color="#CBD5E1",
+                                       font=ctk.CTkFont("Consolas", 9),
+                                       corner_radius=10, border_width=0,
+                                       state="disabled", height=100)
+        self.gen_log.pack(fill="both", expand=True, padx=24, pady=10)
 
-        self.btn_gerar = make_btn(win, "GERAR AUDIOS  (~$7)",
-                                  self._iniciar_geracao,
-                                  font_size=12, bold=True, pady=12)
+        self.btn_gerar = ctk.CTkButton(
+            win, text="GERAR ÁUDIOS  (~$7)", command=self._iniciar_geracao,
+            fg_color=_ORANGE, hover_color=_ORANGE_HOVER,
+            font=ctk.CTkFont("Segoe UI", 12, "bold"),
+            corner_radius=10, height=44)
         self.btn_gerar.pack(fill="x", padx=24, pady=(0, 16))
 
-        # Carrega credenciais salvas
         api_key, group_id = load_credentials()
-        if api_key:
-            self.entry_apikey.insert(0, api_key)
-        if group_id:
-            self.entry_groupid.insert(0, group_id)
+        if api_key: self.entry_apikey.insert(0, api_key)
+        if group_id: self.entry_groupid.insert(0, group_id)
 
         self._atualizar_status_config()
         win.protocol("WM_DELETE_WINDOW", win.destroy)
@@ -730,47 +721,45 @@ class App(TkinterDnD.Tk):
         if not api_key or not group_id:
             messagebox.showwarning("Campos vazios", "Preencha os campos primeiro.")
             return
-        self.lbl_cred_status.config(text="Testando...", fg=COLORS["warning"])
-        self.lbl_balance.config(text="")
+        self.lbl_cred_status.configure(text="Testando...", text_color=_WARNING)
+        self.lbl_balance.configure(text="")
         def _test():
             ok, msg = test_credentials(api_key, group_id)
             def _update():
-                self.lbl_cred_status.config(
-                    text=msg,
-                    fg=COLORS["success"] if ok else COLORS["error"])
+                self.lbl_cred_status.configure(
+                    text=msg, text_color=_SUCCESS if ok else _ERROR)
                 if ok:
                     balance = get_balance(api_key, group_id)
                     if balance:
-                        self.lbl_balance.config(text=f"  |  {balance}")
+                        self.lbl_balance.configure(text=f"  |  {balance}")
             self.after(0, _update)
         threading.Thread(target=_test, daemon=True).start()
 
     def _atualizar_status_config(self):
-        """Atualiza labels do modal de config (so se estiver aberto)."""
         try:
             api_key, group_id = load_credentials()
             if api_key and group_id:
-                self.lbl_cred_status.config(text="Credenciais salvas", fg=COLORS["success"])
+                self.lbl_cred_status.configure(text="Credenciais salvas", text_color=_SUCCESS)
             else:
-                self.lbl_cred_status.config(text="Credenciais nao configuradas", fg=COLORS["warning"])
+                self.lbl_cred_status.configure(text="Credenciais não configuradas", text_color=_WARNING)
             for niche in VALID_NICHES:
                 count = len(list((WHITES_ROOT / niche).glob("*.wav")))
                 if count >= 8:
-                    self.nicho_status_labels[niche].config(text=f"{count} audios", fg=COLORS["success"])
+                    self.nicho_status_labels[niche].configure(text=f"{count} áudios", text_color=_SUCCESS)
                 elif count > 0:
-                    self.nicho_status_labels[niche].config(text=f"{count}/8 audios", fg=COLORS["warning"])
+                    self.nicho_status_labels[niche].configure(text=f"{count}/8 áudios", text_color=_WARNING)
                 else:
-                    self.nicho_status_labels[niche].config(text="nao gerado", fg=COLORS["error"])
+                    self.nicho_status_labels[niche].configure(text="não gerado", text_color=_ERROR)
         except Exception:
             pass
 
     def _gen_log(self, msg):
         def _do():
             try:
-                self.gen_log.config(state="normal")
+                self.gen_log.configure(state="normal")
                 self.gen_log.insert("end", msg + "\n")
                 self.gen_log.see("end")
-                self.gen_log.config(state="disabled")
+                self.gen_log.configure(state="disabled")
             except Exception:
                 pass
         self.after(0, _do)
@@ -781,10 +770,10 @@ class App(TkinterDnD.Tk):
             messagebox.showerror("Sem credenciais", "Salve suas credenciais antes de gerar.")
             return
         try:
-            self.btn_gerar.config(state="disabled", text="Gerando...", bg="#555555")
-            self.gen_log.config(state="normal")
-            self.gen_log.delete("1.0", "end")
-            self.gen_log.config(state="disabled")
+            self.btn_gerar.configure(state="disabled", text="Gerando...", fg_color="#555555")
+            self.gen_log.configure(state="normal")
+            self.gen_log.delete("0.0", "end")
+            self.gen_log.configure(state="disabled")
         except Exception:
             pass
         threading.Thread(target=self._gerar_audios, args=(api_key, group_id), daemon=True).start()
@@ -820,7 +809,7 @@ class App(TkinterDnD.Tk):
         self._gen_log(f"\n=== Concluido: {total_ok} gerados, {total_fail} erros ===")
         def _reset_btn():
             try:
-                self.btn_gerar.config(state="normal", text="GERAR AUDIOS  (~$7)", bg=COLORS["btn"])
+                self.btn_gerar.configure(state="normal", text="GERAR ÁUDIOS  (~$7)", fg_color=_ORANGE)
             except Exception:
                 pass
         self.after(0, _reset_btn)
@@ -831,16 +820,14 @@ class App(TkinterDnD.Tk):
 
     # ── Lógica Processar ─────────────────────────────────────────────────────
 
+    def _on_niche_change(self, label):
+        niche = LABEL_TO_NICHE.get(label, "ed")
+        self._set_niche(niche)
+
     def _set_niche(self, niche):
         self.niche_var.set(niche)
         save_config({"last_niche": niche})
-        for n, btn in self.nicho_btns.items():
-            if n == niche:
-                btn.config(bg=COLORS["accent"], fg="white",
-                           font=("Segoe UI", 10, "bold"))
-            else:
-                btn.config(bg=COLORS["border"], fg=COLORS["subtext"],
-                           font=("Segoe UI", 10))
+        self.niche_seg.set(NICHE_LABELS[niche])
 
     def _on_drop(self, event):
         raw = event.data
@@ -873,49 +860,47 @@ class App(TkinterDnD.Tk):
 
     def _carregar_videos(self, videos):
         self.videos = videos
-        self.pasta_atual.set(f"{len(videos)} video(s) selecionado(s)")
         preview = " | ".join([v.name for v in videos[:3]])
         if len(videos) > 3:
             preview += f" ... (+{len(videos)-3})"
-        self.lbl_contagem.config(text=preview, fg=COLORS["subtext"])
-        self.drop_zone.config(text=f"{len(videos)} video(s) carregado(s)",
-                              fg=COLORS["success"])
-        self.btn_processar.config(state="normal")
-        self.progress["value"] = 0
-        self.status_var.set(f"Pronto — {len(videos)} video(s)")
+        self.lbl_contagem.configure(text=preview, text_color=_SUBTEXT)
+        self.drop_zone.configure(text=f"  {len(videos)} vídeo(s) carregado(s)",
+                                  text_color=_SUCCESS)
+        self.btn_processar.configure(state="normal")
+        self.progress.set(0)
+        self.status_var.set(f"Pronto — {len(videos)} vídeo(s)")
         self._log_clear()
-        self._log(f"{len(videos)} video(s) selecionado(s):")
+        self._log(f"{len(videos)} vídeo(s) selecionado(s):")
         for v in videos:
             self._log(f"  - {v.name}")
 
     def _limpar_videos(self):
         self.videos = []
-        self.pasta_atual.set("Nenhum video selecionado")
-        self.lbl_contagem.config(text="", fg=COLORS["subtext"])
-        self.drop_zone.config(text="Arraste os videos aqui  ou", fg=COLORS["subtext"])
-        self.btn_processar.config(state="disabled")
-        self.btn_abrir.config(state="disabled", bg=COLORS["border"], fg=COLORS["subtext"])
-        self.progress["value"] = 0
+        self.lbl_contagem.configure(text="", text_color=_SUBTEXT)
+        self.drop_zone.configure(text="  Arraste os vídeos aqui   ou", text_color=_SUBTEXT)
+        self.btn_processar.configure(state="disabled")
+        self.btn_abrir.configure(state="disabled", fg_color=_BORDER, text_color=_SUBTEXT)
+        self.progress.set(0)
         self.status_var.set("Aguardando...")
         self._log_clear()
 
     def _log(self, msg):
         def _do():
-            self.log_text.config(state="normal")
+            self.log_text.configure(state="normal")
             self.log_text.insert("end", msg + "\n")
             self.log_text.see("end")
-            self.log_text.config(state="disabled")
+            self.log_text.configure(state="disabled")
         self.after(0, _do)
 
     def _log_clear(self):
         def _do():
-            self.log_text.config(state="normal")
-            self.log_text.delete("1.0", "end")
-            self.log_text.config(state="disabled")
+            self.log_text.configure(state="normal")
+            self.log_text.delete("0.0", "end")
+            self.log_text.configure(state="disabled")
         self.after(0, _do)
 
     def _verificar_atualizacao(self):
-        self.btn_update.config(text="Verificando...", state="disabled")
+        self.btn_update.configure(text="Verificando...", state="disabled")
         def _check():
             try:
                 r = requests.get(VERSION_URL, timeout=10)
@@ -924,25 +909,25 @@ class App(TkinterDnD.Tk):
                 changelog = data.get("changelog", "")
                 download_url = data.get("download_url", "")
                 def _show():
-                    self.btn_update.config(text="Verificar atualizacao", state="normal")
+                    self.btn_update.configure(text="Verificar atualização", state="normal")
                     if latest > APP_VERSION:
                         if messagebox.askyesno(
-                                "Atualizacao disponivel!",
-                                f"Versao atual: v{APP_VERSION}\n"
-                                f"Nova versao: v{latest}\n\n"
+                                "Atualização disponível!",
+                                f"Versão atual: v{APP_VERSION}\n"
+                                f"Nova versão: v{latest}\n\n"
                                 f"{changelog}\n\n"
-                                "Abrir pagina de download?"):
+                                "Abrir página de download?"):
                             import webbrowser
                             webbrowser.open(download_url)
                     else:
                         messagebox.showinfo("Atualizado",
-                                            f"Voce ja tem a versao mais recente (v{APP_VERSION}).")
+                                            f"Você já tem a versão mais recente (v{APP_VERSION}).")
                 self.after(0, _show)
             except Exception:
-                self.after(0, lambda: self.btn_update.config(
-                    text="Verificar atualizacao", state="normal"))
+                self.after(0, lambda: self.btn_update.configure(
+                    text="Verificar atualização", state="normal"))
                 self.after(0, lambda: messagebox.showwarning(
-                    "Erro", "Nao foi possivel verificar atualizacoes.\nVerifique sua conexao."))
+                    "Erro", "Não foi possível verificar atualizações.\nVerifique sua conexão."))
         threading.Thread(target=_check, daemon=True).start()
 
     def _check_ffmpeg(self):
@@ -962,11 +947,11 @@ class App(TkinterDnD.Tk):
                 self._open_config_modal()
             return
         self.processando = True
-        self.btn_processar.config(state="disabled", text="Processando...", bg="#555555")
+        self.btn_processar.configure(state="disabled", text="Processando...", fg_color="#555555")
         self._log_clear()
-        self._log(f"Iniciando — Nicho: {NICHE_LABELS[niche]} — {len(self.videos)} video(s)\n")
-        self.progress["maximum"] = len(self.videos)
-        self.progress["value"]   = 0
+        self._log(f"Iniciando — Nicho: {NICHE_LABELS[niche]} — {len(self.videos)} vídeo(s)\n")
+        self._progress_max = len(self.videos)
+        self.progress.set(0)
         threading.Thread(target=self._processar, daemon=True).start()
 
     def _processar(self):
@@ -996,7 +981,7 @@ class App(TkinterDnD.Tk):
                 self._log(f"  [ERRO] {e}")
                 save_log(f"  ERRO: {video.name} — {e}")
                 fail += 1
-            self.after(0, lambda v=i: self.progress.configure(value=v))
+            self.after(0, lambda v=i: self.progress.set(v / self._progress_max))
 
         resumo = f"\nConcluido: {ok} processado(s)"
         if skip:
@@ -1009,22 +994,22 @@ class App(TkinterDnD.Tk):
         if fail == 0:
             self.after(0, lambda: self.status_var.set(
                 f"Concluido! {ok} processado(s)" + (f", {skip} pulado(s)" if skip else "")))
-            self.after(0, lambda: self.lbl_status.config(fg=COLORS["success"]))
+            self.after(0, lambda: self.lbl_status.configure(text_color=_SUCCESS))
             notify_windows("Phoenix PhaseCancel",
                            f"{ok} video(s) processado(s)" + (f", {skip} pulado(s)" if skip else ""))
         else:
             self.after(0, lambda: self.status_var.set(f"{ok} OK, {fail} com erro."))
-            self.after(0, lambda: self.lbl_status.config(fg=COLORS["warning"]))
+            self.after(0, lambda: self.lbl_status.configure(text_color=_WARNING))
             notify_windows("Phoenix PhaseCancel", f"{ok} OK, {fail} com erro")
 
         self.processando = False
-        self.after(0, lambda: self.btn_processar.config(
-            state="normal", text="PROCESSAR", bg=COLORS["btn"]))
+        self.after(0, lambda: self.btn_processar.configure(
+            state="normal", text="PROCESSAR", fg_color=_ORANGE))
         if self.videos:
             pasta_proc = self.videos[0].parent / "processados"
             if pasta_proc.exists():
-                self.after(0, lambda: self.btn_abrir.config(
-                    state="normal", bg=COLORS["panel"], fg=COLORS["text"]))
+                self.after(0, lambda: self.btn_abrir.configure(
+                    state="normal", fg_color=_BORDER, text_color=_WHITE))
 
     def _abrir_processados(self):
         if not self.videos:
@@ -1037,179 +1022,168 @@ class App(TkinterDnD.Tk):
 
     # ── Aba Comprimir ────────────────────────────────────────────────────────
 
-    def _build_tab_comprimir(self):
-        frame = tk.Frame(self.nb, bg=COLORS["bg"])
-        self.nb.add(frame, text="  Comprimir  ")
+    def _build_tab_comprimir(self, frame):
+        frame.configure(fg_color=_PANEL)
+        self.comp_videos        = []
+        self.comp_processando   = False
+        self.comp_status_var    = tk.StringVar(value="Aguardando...")
+        self._comp_progress_max = 1
+        self.comp_out_var       = tk.StringVar(value="Mesma pasta do video")
 
-        self.comp_videos = []
-        self.comp_processando = False
-        self.comp_status_var = tk.StringVar(value="Aguardando...")
-
-        # Detecta GPU em background e mostra no topo
-        gpu_row = tk.Frame(frame, bg=COLORS["bg"])
-        gpu_row.pack(fill="x", padx=20, pady=(10, 0))
-        self.lbl_gpu = tk.Label(gpu_row, text="Detectando encoder...",
-                                font=("Segoe UI", 9, "italic"),
-                                bg=COLORS["bg"], fg=COLORS["subtext"])
-        self.lbl_gpu.pack(anchor="w")
+        # GPU label
+        self.lbl_gpu = ctk.CTkLabel(frame, text="Detectando encoder...",
+                                     font=ctk.CTkFont("Segoe UI", 9, slant="italic"),
+                                     text_color=_SUBTEXT)
+        self.lbl_gpu.pack(anchor="w", padx=16, pady=(10, 4))
         def _detect():
             enc, name = get_gpu_encoder()
             def _show():
                 if enc:
-                    self.lbl_gpu.config(
-                        text=f"Encoder: GPU {name} ({enc}) — aceleracao de hardware ativa",
-                        fg=COLORS["success"])
+                    self.lbl_gpu.configure(
+                        text=f"⚡  GPU {name} ({enc}) — aceleração de hardware ativa",
+                        text_color=_SUCCESS)
                 else:
-                    self.lbl_gpu.config(
-                        text="Encoder: CPU (libx264) — sem GPU compativel detectada",
-                        fg=COLORS["subtext"])
+                    self.lbl_gpu.configure(
+                        text="CPU (libx264) — sem GPU compatível detectada",
+                        text_color=_SUBTEXT)
             self.after(0, _show)
         threading.Thread(target=_detect, daemon=True).start()
 
-        # Drop zone
-        pf = tk.Frame(frame, bg=COLORS["panel"], pady=16, padx=20)
-        pf.pack(fill="x", padx=20, pady=(16, 8))
-        tk.Label(pf, text="VIDEOS",
-                 font=("Segoe UI", 9, "bold"),
-                 bg=COLORS["panel"], fg=COLORS["subtext"]).pack(anchor="w")
+        # Videos card
+        vc = ctk.CTkFrame(frame, fg_color=_PANEL2, corner_radius=12)
+        vc.pack(fill="x", padx=16, pady=(0, 6))
+        ctk.CTkLabel(vc, text="VÍDEOS",
+                     font=ctk.CTkFont("Segoe UI", 9, "bold"),
+                     text_color=_SUBTEXT).pack(anchor="w", padx=16, pady=(12, 4))
 
-        self.comp_drop_zone = tk.Label(pf,
-                                       text="Arraste os videos aqui  ou",
-                                       font=("Segoe UI", 10),
-                                       bg=COLORS["border"], fg=COLORS["subtext"],
-                                       pady=18, relief="flat", cursor="hand2")
-        self.comp_drop_zone.pack(fill="x", pady=(8, 0))
+        self.comp_drop_zone = ctk.CTkLabel(
+            vc, text="  Arraste os vídeos aqui   ou",
+            font=ctk.CTkFont("Segoe UI", 10), text_color=_SUBTEXT,
+            fg_color=_BORDER, corner_radius=8, height=52, cursor="hand2")
+        self.comp_drop_zone.pack(fill="x", padx=16, pady=(0, 8))
         self.comp_drop_zone.drop_target_register(DND_FILES)
         self.comp_drop_zone.dnd_bind("<<Drop>>", self._comp_on_drop)
 
-        btn_row = tk.Frame(pf, bg=COLORS["panel"])
-        btn_row.pack(fill="x", pady=(8, 0))
-        make_btn(btn_row, "  Selecionar Videos  ", self._comp_selecionar,
-                 pady=8, padx=12).pack(side="left")
-        make_btn(btn_row, "  Limpar  ", self._comp_limpar,
-                 bg=COLORS["border"], fg=COLORS["subtext"],
-                 pady=8, padx=12).pack(side="left", padx=(8, 0))
+        cbr = ctk.CTkFrame(vc, fg_color="transparent")
+        cbr.pack(fill="x", padx=16, pady=(0, 12))
+        ctk.CTkButton(cbr, text="Selecionar Vídeos", command=self._comp_selecionar,
+                      fg_color=_ORANGE, hover_color=_ORANGE_HOVER,
+                      font=ctk.CTkFont("Segoe UI", 10, "bold"),
+                      corner_radius=8, height=34).pack(side="left")
+        ctk.CTkButton(cbr, text="Limpar", command=self._comp_limpar,
+                      fg_color=_BORDER, hover_color="#1E3566", text_color=_SUBTEXT,
+                      font=ctk.CTkFont("Segoe UI", 10),
+                      corner_radius=8, height=34).pack(side="left", padx=(8, 0))
 
-        self.comp_lbl_contagem = tk.Label(frame, text="",
-                                          font=("Segoe UI", 10),
-                                          bg=COLORS["bg"], fg=COLORS["subtext"])
-        self.comp_lbl_contagem.pack(anchor="w", padx=20)
+        self.comp_lbl_contagem = ctk.CTkLabel(frame, text="",
+                                               font=ctk.CTkFont("Segoe UI", 9),
+                                               text_color=_SUBTEXT)
+        self.comp_lbl_contagem.pack(anchor="w", padx=16, pady=(2, 0))
 
-        # Qualidade
-        qf = tk.Frame(frame, bg=COLORS["panel"], pady=16, padx=20)
-        qf.pack(fill="x", padx=20, pady=8)
-        tk.Label(qf, text="QUALIDADE",
-                 font=("Segoe UI", 9, "bold"),
-                 bg=COLORS["panel"], fg=COLORS["subtext"]).pack(anchor="w")
-        row_q = tk.Frame(qf, bg=COLORS["panel"])
-        row_q.pack(fill="x", pady=(8, 0))
-        self.comp_quality_var = tk.StringVar(value="Balanceado")
-        self.comp_quality_btns = {}
-        for label in COMPRESS_PRESETS:
-            btn = tk.Button(row_q, text=label,
-                            command=lambda l=label: self._comp_set_quality(l),
-                            bg=COLORS["border"], fg=COLORS["subtext"],
-                            font=("Segoe UI", 10), relief="flat",
-                            cursor="hand2", padx=16, pady=8)
-            btn.pack(side="left", padx=(0, 8))
-            self.comp_quality_btns[label] = btn
-        self._comp_set_quality("Facebook Ads")
+        # Qualidade card
+        qc = ctk.CTkFrame(frame, fg_color=_PANEL2, corner_radius=12)
+        qc.pack(fill="x", padx=16, pady=6)
+        ctk.CTkLabel(qc, text="QUALIDADE",
+                     font=ctk.CTkFont("Segoe UI", 9, "bold"),
+                     text_color=_SUBTEXT).pack(anchor="w", padx=16, pady=(12, 6))
 
-        # Destino
-        df = tk.Frame(frame, bg=COLORS["panel"], pady=12, padx=20)
-        df.pack(fill="x", padx=20, pady=(0, 8))
-        tk.Label(df, text="DESTINO",
-                 font=("Segoe UI", 9, "bold"),
-                 bg=COLORS["panel"], fg=COLORS["subtext"]).pack(anchor="w")
-        dest_row = tk.Frame(df, bg=COLORS["panel"])
-        dest_row.pack(fill="x", pady=(8, 0))
-        self.comp_out_var = tk.StringVar(value="Mesma pasta do video")
-        tk.Entry(dest_row, textvariable=self.comp_out_var,
-                 bg=COLORS["border"], fg=COLORS["text"],
-                 readonlybackground=COLORS["border"],
-                 disabledbackground=COLORS["border"],
-                 disabledforeground=COLORS["text"],
-                 insertbackground="white", relief="flat",
-                 font=("Segoe UI", 10), state="readonly").pack(side="left", fill="x", expand=True, ipady=6)
-        make_btn(dest_row, "Escolher", self._comp_pick_output,
-                 bg=COLORS["border"], fg=COLORS["subtext"],
-                 pady=6, padx=10).pack(side="left", padx=(8, 0))
+        self.comp_quality_var = tk.StringVar(value="Facebook Ads")
+        self.comp_quality_seg = ctk.CTkSegmentedButton(
+            qc, values=list(COMPRESS_PRESETS.keys()),
+            command=self._comp_set_quality,
+            fg_color=_BORDER, selected_color=_ORANGE,
+            selected_hover_color=_ORANGE_HOVER,
+            unselected_color=_BORDER, unselected_hover_color="#1E3566",
+            text_color=_WHITE, font=ctk.CTkFont("Segoe UI", 9, "bold"),
+            corner_radius=8, height=34)
+        self.comp_quality_seg.pack(fill="x", padx=16, pady=(0, 12))
+        self.comp_quality_seg.set("Facebook Ads")
 
-        # Progresso
-        pbar_frame = tk.Frame(frame, bg=COLORS["bg"])
-        pbar_frame.pack(fill="x", padx=20, pady=(8, 0))
-        self.comp_progress = ttk.Progressbar(pbar_frame, mode="determinate")
-        self.comp_progress.pack(fill="x")
-        tk.Label(frame, textvariable=self.comp_status_var,
-                 font=("Segoe UI", 10),
-                 bg=COLORS["bg"], fg=COLORS["subtext"]).pack(anchor="w", padx=20, pady=(4, 0))
+        # Destino card
+        dc = ctk.CTkFrame(frame, fg_color=_PANEL2, corner_radius=12)
+        dc.pack(fill="x", padx=16, pady=(0, 6))
+        ctk.CTkLabel(dc, text="DESTINO",
+                     font=ctk.CTkFont("Segoe UI", 9, "bold"),
+                     text_color=_SUBTEXT).pack(anchor="w", padx=16, pady=(12, 6))
+        dr = ctk.CTkFrame(dc, fg_color="transparent")
+        dr.pack(fill="x", padx=16, pady=(0, 12))
+        self.comp_dest_entry = ctk.CTkEntry(
+            dr, fg_color=_BORDER, text_color=_WHITE, border_color=_BORDER,
+            font=ctk.CTkFont("Segoe UI", 10), state="disabled", height=34, corner_radius=8)
+        self.comp_dest_entry.pack(side="left", fill="x", expand=True)
+        self._set_comp_dest("Mesma pasta do vídeo")
+        ctk.CTkButton(dr, text="Escolher", command=self._comp_pick_output,
+                      fg_color=_BORDER, hover_color="#1E3566", text_color=_SUBTEXT,
+                      font=ctk.CTkFont("Segoe UI", 10),
+                      corner_radius=8, height=34, width=80).pack(side="left", padx=(8, 0))
+
+        # Paralelos card
+        pc = ctk.CTkFrame(frame, fg_color=_PANEL2, corner_radius=12)
+        pc.pack(fill="x", padx=16, pady=(0, 6))
+        ctk.CTkLabel(pc, text="VÍDEOS SIMULTÂNEOS",
+                     font=ctk.CTkFont("Segoe UI", 9, "bold"),
+                     text_color=_SUBTEXT).pack(anchor="w", padx=16, pady=(12, 4))
+        self.comp_workers_var = tk.IntVar(value=2)
+        self.comp_workers_seg = ctk.CTkSegmentedButton(
+            pc, values=["1", "2", "3", "4"],
+            command=lambda v: self.comp_workers_var.set(int(v)),
+            fg_color=_BORDER, selected_color=_ORANGE,
+            selected_hover_color=_ORANGE_HOVER,
+            unselected_color=_BORDER, unselected_hover_color="#1E3566",
+            text_color=_WHITE, font=ctk.CTkFont("Segoe UI", 10, "bold"),
+            corner_radius=8, height=34)
+        self.comp_workers_seg.pack(anchor="w", padx=16, pady=(0, 4))
+        self.comp_workers_seg.set("2")
+        ctk.CTkLabel(pc, text="Recomendado: 2.  Com GPU pode usar 3 ou 4.",
+                     font=ctk.CTkFont("Segoe UI", 8, slant="italic"),
+                     text_color=_SUBTEXT).pack(anchor="w", padx=16, pady=(0, 10))
+
+        # Progress + status
+        self.comp_progress = ctk.CTkProgressBar(
+            frame, fg_color=_BORDER, progress_color=_ORANGE,
+            corner_radius=4, height=6)
+        self.comp_progress.pack(fill="x", padx=16, pady=(6, 0))
+        self.comp_progress.set(0)
+
+        self.comp_lbl_status = ctk.CTkLabel(
+            frame, text="Aguardando...",
+            font=ctk.CTkFont("Segoe UI", 9), text_color=_SUBTEXT)
+        self.comp_lbl_status.pack(anchor="w", padx=16, pady=(3, 0))
+        self.comp_status_var.trace_add("write", lambda *_: self.after(
+            0, lambda: self.comp_lbl_status.configure(text=self.comp_status_var.get())))
 
         # Log
-        lf = tk.Frame(frame, bg=COLORS["panel"])
-        lf.pack(fill="both", expand=True, padx=20, pady=8)
-        self.comp_log = tk.Text(lf, height=5,
-                                bg=COLORS["panel"], fg=COLORS["text"],
-                                font=("Consolas", 9), relief="flat",
-                                bd=0, state="disabled", wrap="word")
-        sc = tk.Scrollbar(lf, command=self.comp_log.yview)
-        self.comp_log.configure(yscrollcommand=sc.set)
-        self.comp_log.pack(side="left", fill="both", expand=True, padx=10, pady=8)
-        sc.pack(side="right", fill="y")
-
-        # Paralelos
-        par_frame = tk.Frame(frame, bg=COLORS["panel"], pady=12, padx=20)
-        par_frame.pack(fill="x", padx=20, pady=(0, 8))
-        tk.Label(par_frame, text="VIDEOS SIMULTANEOS",
-                 font=("Segoe UI", 9, "bold"),
-                 bg=COLORS["panel"], fg=COLORS["subtext"]).pack(anchor="w")
-        par_row = tk.Frame(par_frame, bg=COLORS["panel"])
-        par_row.pack(anchor="w", pady=(6, 0))
-        self.comp_workers_var = tk.IntVar(value=2)
-        self.comp_workers_btns = {}
-        for n in [1, 2, 3, 4]:
-            btn = tk.Button(par_row, text=str(n),
-                            command=lambda v=n: self._comp_set_workers(v),
-                            bg=COLORS["border"], fg=COLORS["subtext"],
-                            font=("Segoe UI", 10), relief="flat",
-                            cursor="hand2", padx=16, pady=6, width=4)
-            btn.pack(side="left", padx=(0, 6))
-            self.comp_workers_btns[n] = btn
-        self._comp_set_workers(2)
-        tk.Label(par_frame, text="Recomendado: 2. Com GPU, pode usar 3 ou 4.",
-                 font=("Segoe UI", 8, "italic"),
-                 bg=COLORS["panel"], fg=COLORS["subtext"]).pack(anchor="w", pady=(4, 0))
+        self.comp_log = ctk.CTkTextbox(
+            frame, fg_color=_PANEL2, text_color="#CBD5E1",
+            font=ctk.CTkFont("Consolas", 9), corner_radius=10,
+            border_width=0, state="disabled", wrap="word")
+        self.comp_log.pack(fill="both", expand=True, padx=16, pady=8)
 
         # Botões
-        br = tk.Frame(frame, bg=COLORS["bg"])
-        br.pack(fill="x", padx=20, pady=(0, 16))
-        self.comp_btn = make_btn(br, "COMPRIMIR",
-                                 self._comp_iniciar,
-                                 font_size=13, bold=True,
-                                 pady=14, state="disabled")
+        br = ctk.CTkFrame(frame, fg_color="transparent")
+        br.pack(fill="x", padx=16, pady=(0, 14))
+        self.comp_btn = ctk.CTkButton(
+            br, text="COMPRIMIR", command=self._comp_iniciar,
+            fg_color=_ORANGE, hover_color=_ORANGE_HOVER,
+            font=ctk.CTkFont("Segoe UI", 13, "bold"),
+            corner_radius=10, height=46, state="disabled")
         self.comp_btn.pack(side="left", fill="x", expand=True, padx=(0, 8))
-        self.comp_btn_abrir = make_btn(br, "Abrir Pasta",
-                                       self._comp_abrir_pasta,
-                                       bg=COLORS["border"], fg=COLORS["subtext"],
-                                       pady=14, state="disabled")
+        self.comp_btn_abrir = ctk.CTkButton(
+            br, text="Abrir Pasta", command=self._comp_abrir_pasta,
+            fg_color=_BORDER, hover_color="#1E3566", text_color=_SUBTEXT,
+            font=ctk.CTkFont("Segoe UI", 10),
+            corner_radius=10, height=46, state="disabled")
         self.comp_btn_abrir.pack(side="left")
 
-    def _comp_set_workers(self, n):
-        self.comp_workers_var.set(n)
-        for v, btn in self.comp_workers_btns.items():
-            if v == n:
-                btn.config(bg=COLORS["accent"], fg="white", font=("Segoe UI", 10, "bold"))
-            else:
-                btn.config(bg=COLORS["border"], fg=COLORS["subtext"], font=("Segoe UI", 10))
+    def _set_comp_dest(self, value):
+        self.comp_out_var.set(value)
+        self.comp_dest_entry.configure(state="normal")
+        self.comp_dest_entry.delete(0, "end")
+        self.comp_dest_entry.insert(0, value)
+        self.comp_dest_entry.configure(state="disabled")
 
     def _comp_set_quality(self, label):
         self.comp_quality_var.set(label)
-        for l, btn in self.comp_quality_btns.items():
-            if l == label:
-                btn.config(bg=COLORS["accent"], fg="white",
-                           font=("Segoe UI", 10, "bold"))
-            else:
-                btn.config(bg=COLORS["border"], fg=COLORS["subtext"],
-                           font=("Segoe UI", 10))
 
     def _comp_on_drop(self, event):
         paths = self.tk.splitlist(event.data)
@@ -1237,49 +1211,50 @@ class App(TkinterDnD.Tk):
         preview = " | ".join([v.name for v in videos[:3]])
         if len(videos) > 3:
             preview += f" ... (+{len(videos)-3})"
-        self.comp_lbl_contagem.config(text=preview, fg=COLORS["subtext"])
-        self.comp_drop_zone.config(text=f"{len(videos)} video(s) carregado(s)", fg=COLORS["success"])
-        self.comp_btn.config(state="normal")
-        self.comp_progress["value"] = 0
-        self.comp_status_var.set(f"Pronto — {len(videos)} video(s)")
+        self.comp_lbl_contagem.configure(text=preview, text_color=_SUBTEXT)
+        self.comp_drop_zone.configure(text=f"  {len(videos)} vídeo(s) carregado(s)",
+                                       text_color=_SUCCESS)
+        self.comp_btn.configure(state="normal")
+        self.comp_progress.set(0)
+        self.comp_status_var.set(f"Pronto — {len(videos)} vídeo(s)")
         self._comp_log_clear()
-        self._comp_log(f"{len(videos)} video(s) selecionado(s):")
+        self._comp_log(f"{len(videos)} vídeo(s) selecionado(s):")
         for v in videos:
             self._comp_log(f"  - {v.name}")
 
     def _comp_limpar(self):
         self.comp_videos = []
-        self.comp_lbl_contagem.config(text="", fg=COLORS["subtext"])
-        self.comp_drop_zone.config(text="Arraste os videos aqui  ou", fg=COLORS["subtext"])
-        self.comp_btn.config(state="disabled")
-        self.comp_btn_abrir.config(state="disabled", bg=COLORS["border"], fg=COLORS["subtext"])
-        self.comp_progress["value"] = 0
+        self.comp_lbl_contagem.configure(text="", text_color=_SUBTEXT)
+        self.comp_drop_zone.configure(text="  Arraste os vídeos aqui   ou", text_color=_SUBTEXT)
+        self.comp_btn.configure(state="disabled")
+        self.comp_btn_abrir.configure(state="disabled", fg_color=_BORDER, text_color=_SUBTEXT)
+        self.comp_progress.set(0)
         self.comp_status_var.set("Aguardando...")
         self._comp_log_clear()
 
     def _comp_pick_output(self):
         folder = filedialog.askdirectory(title="Pasta de destino")
         if folder:
-            self.comp_out_var.set(folder)
+            self._set_comp_dest(folder)
 
     def _comp_log(self, msg):
         def _do():
-            self.comp_log.config(state="normal")
+            self.comp_log.configure(state="normal")
             self.comp_log.insert("end", msg + "\n")
             self.comp_log.see("end")
-            self.comp_log.config(state="disabled")
+            self.comp_log.configure(state="disabled")
         self.after(0, _do)
 
     def _comp_log_clear(self):
         def _do():
-            self.comp_log.config(state="normal")
-            self.comp_log.delete("1.0", "end")
-            self.comp_log.config(state="disabled")
+            self.comp_log.configure(state="normal")
+            self.comp_log.delete("0.0", "end")
+            self.comp_log.configure(state="disabled")
         self.after(0, _do)
 
     def _comp_output_path(self, src):
         dest = self.comp_out_var.get()
-        folder = src.parent if dest == "Mesma pasta do video" else Path(dest)
+        folder = src.parent if dest in ("Mesma pasta do video", "Mesma pasta do vídeo") else Path(dest)
         out_dir = folder / "comprimidos"
         out_dir.mkdir(exist_ok=True)
         return out_dir / src.name
@@ -1340,12 +1315,12 @@ class App(TkinterDnD.Tk):
         if self.comp_processando or not self.comp_videos:
             return
         self.comp_processando = True
-        self.comp_btn.config(state="disabled", text="Comprimindo...", bg="#555555")
+        self.comp_btn.configure(state="disabled", text="Comprimindo...", fg_color="#555555")
         self._comp_log_clear()
         workers = self.comp_workers_var.get()
-        self._comp_log(f"Iniciando — {len(self.comp_videos)} video(s) — {self.comp_quality_var.get()} — {workers} paralelo(s)\n")
-        self.comp_progress["maximum"] = len(self.comp_videos)
-        self.comp_progress["value"] = 0
+        self._comp_log(f"Iniciando — {len(self.comp_videos)} vídeo(s) — {self.comp_quality_var.get()} — {workers} paralelo(s)\n")
+        self._comp_progress_max = len(self.comp_videos)
+        self.comp_progress.set(0)
         threading.Thread(target=self._comp_run, daemon=True).start()
 
     def _comp_run(self):
@@ -1437,7 +1412,7 @@ class App(TkinterDnD.Tk):
                     else:
                         fail += 1
                     v = done[0]
-                self.after(0, lambda v=v: self.comp_progress.configure(value=v))
+                self.after(0, lambda v=v: self.comp_progress.set(v / self._comp_progress_max))
                 self.after(0, lambda v=v: self.comp_status_var.set(
                     f"Comprimindo... {v} de {total}"))
 
@@ -1456,21 +1431,22 @@ class App(TkinterDnD.Tk):
                                                   f"{ok} comprimido(s), {fail} com erro."))
 
         self.comp_processando = False
-        self.after(0, lambda: self.comp_btn.config(
-            state="normal", text="COMPRIMIR", bg=COLORS["btn"]))
-
+        self.after(0, lambda: self.comp_btn.configure(
+            state="normal", text="COMPRIMIR", fg_color=_ORANGE))
         if last_dest[0]:
-            self.after(0, lambda: self.comp_btn_abrir.config(
-                state="normal", bg=COLORS["panel"], fg=COLORS["text"]))
+            self.after(0, lambda: self.comp_btn_abrir.configure(
+                state="normal", fg_color=_BORDER, text_color=_WHITE))
 
     def _comp_abrir_pasta(self):
         if not self.comp_videos:
             return
         dest = self.comp_out_var.get()
-        folder = str(self.comp_videos[0].parent) if dest == "Mesma pasta do video" else dest
+        folder = str(self.comp_videos[0].parent) if dest in (
+            "Mesma pasta do video", "Mesma pasta do vídeo") else dest
         subprocess.Popen(["explorer", folder])
 
 
 if __name__ == "__main__":
     app = App()
+    app.mainloop()
     app.mainloop()

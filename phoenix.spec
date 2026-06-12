@@ -19,6 +19,7 @@ a = Analysis(
         (str(BASE / "scripts" / "memoria"),         "scripts/memoria"),
     ],
     hiddenimports=["tkinter", "tkinter.ttk", "tkinter.filedialog", "tkinter.messagebox",
+                   "customtkinter",
                    "requests", "requests.adapters", "requests.auth", "requests.compat",
                    "requests.cookies", "requests.exceptions", "requests.hooks",
                    "requests.models", "requests.packages", "requests.sessions",
