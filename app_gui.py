@@ -116,7 +116,7 @@ NICHE_LABELS = {
     "diabetes":      "Diabetes",
     "emagrecimento": "Emagrecimento",
     "neuropatia":    "Neuropatia",
-    "memoria":       "MM",
+    "memoria":       "Memoria",
 }
 
 VOICE_POOL = [
@@ -420,15 +420,15 @@ def process_one(video_path, niche):
 
 # ── CTk constants ─────────────────────────────────────────────────────────────
 
-_ORANGE       = "#F07800"
-_ORANGE_HOVER = "#D96800"
-_NAVY         = "#0B1630"
-_PANEL        = "#111F45"
-_PANEL2       = "#0D1A3A"
-_BORDER       = "#1A2D5A"
-_WHITE        = "#FFFFFF"
-_SUBTEXT      = "#7A8AAD"
-_SUCCESS      = "#2ECC71"
+_ORANGE       = "#E8700A"
+_ORANGE_HOVER = "#C95E00"
+_NAVY         = "#080F1E"
+_PANEL        = "#0E1A36"
+_PANEL2       = "#0A1428"
+_BORDER       = "#162348"
+_WHITE        = "#E8EDF5"
+_SUBTEXT      = "#6B7FA3"
+_SUCCESS      = "#27AE60"
 _ERROR        = "#E74C3C"
 _WARNING      = "#F5A623"
 
@@ -441,8 +441,8 @@ class App(ctk.CTk, TkinterDnD.DnDWrapper):
         super().__init__()
         self.TkdndVersion = TkinterDnD._require(self)
         self.title("Phoenix PhaseCancel")
-        self.geometry("780x740")
-        self.minsize(680, 640)
+        self.geometry("800x860")
+        self.minsize(700, 780)
         self.configure(fg_color=_NAVY)
         self.resizable(True, True)
 
@@ -463,13 +463,13 @@ class App(ctk.CTk, TkinterDnD.DnDWrapper):
                      font=ctk.CTkFont("Segoe UI", 20, "bold"),
                      text_color=_WHITE).pack(side="left")
         ctk.CTkLabel(lbl_row, text=f"  v{APP_VERSION}",
-                     font=ctk.CTkFont("Segoe UI", 9),
+                     font=ctk.CTkFont("Segoe UI", 11),
                      text_color=_SUBTEXT).pack(side="left", pady=(4, 0))
         self.btn_update = ctk.CTkButton(
             hf, text="Verificar atualização",
             command=self._verificar_atualizacao,
             fg_color=_BORDER, hover_color=_PANEL, text_color=_SUBTEXT,
-            font=ctk.CTkFont("Segoe UI", 9), corner_radius=20, height=30, width=170)
+            font=ctk.CTkFont("Segoe UI", 11), corner_radius=20, height=30, width=170)
         self.btn_update.pack(side="right")
 
         # Tabs
@@ -480,7 +480,7 @@ class App(ctk.CTk, TkinterDnD.DnDWrapper):
             segmented_button_selected_hover_color=_ORANGE_HOVER,
             segmented_button_unselected_color=_BORDER,
             segmented_button_unselected_hover_color="#1E3566",
-            text_color=_WHITE, corner_radius=12, border_width=0)
+            text_color=_WHITE, corner_radius=6, border_width=0)
         self.tabs.pack(fill="both", expand=True, padx=16, pady=(0, 16))
         self.tabs.add("  Processar  ")
         self.tabs.add("  Comprimir  ")
@@ -493,44 +493,46 @@ class App(ctk.CTk, TkinterDnD.DnDWrapper):
 
     def _build_tab_processar(self, frame):
         frame.configure(fg_color=_PANEL)
+        frame.grid_rowconfigure(4, weight=1)   # linha do log expande
+        frame.grid_columnconfigure(0, weight=1)
 
-        # Videos card
-        vc = ctk.CTkFrame(frame, fg_color=_PANEL2, corner_radius=12)
-        vc.pack(fill="x", padx=16, pady=(14, 6))
+        # Videos card — row 0
+        vc = ctk.CTkFrame(frame, fg_color=_PANEL2, corner_radius=6)
+        vc.grid(row=0, column=0, sticky="ew", padx=16, pady=(8, 4))
         ctk.CTkLabel(vc, text="VÍDEOS",
-                     font=ctk.CTkFont("Segoe UI", 9, "bold"),
-                     text_color=_SUBTEXT).pack(anchor="w", padx=16, pady=(12, 4))
+                     font=ctk.CTkFont("Segoe UI", 11, "bold"),
+                     text_color=_SUBTEXT).pack(anchor="w", padx=16, pady=(8, 3))
 
         self.drop_zone = ctk.CTkLabel(
-            vc, text="  Arraste os vídeos aqui   ou",
-            font=ctk.CTkFont("Segoe UI", 10), text_color=_SUBTEXT,
+            vc, text="  📂  Arraste os vídeos aqui  ou  clique em Selecionar",
+            font=ctk.CTkFont("Segoe UI", 11), text_color=_SUBTEXT,
             fg_color=_BORDER, corner_radius=8, height=52, cursor="hand2")
         self.drop_zone.pack(fill="x", padx=16, pady=(0, 8))
         self.drop_zone.drop_target_register(DND_FILES)
         self.drop_zone.dnd_bind("<<Drop>>", self._on_drop)
 
         br1 = ctk.CTkFrame(vc, fg_color="transparent")
-        br1.pack(fill="x", padx=16, pady=(0, 12))
+        br1.pack(fill="x", padx=16, pady=(0, 8))
         ctk.CTkButton(br1, text="Selecionar Vídeos", command=self._selecionar_videos,
                       fg_color=_ORANGE, hover_color=_ORANGE_HOVER,
-                      font=ctk.CTkFont("Segoe UI", 10, "bold"),
+                      font=ctk.CTkFont("Segoe UI", 11, "bold"),
                       corner_radius=8, height=34).pack(side="left")
         ctk.CTkButton(br1, text="Limpar", command=self._limpar_videos,
                       fg_color=_BORDER, hover_color="#1E3566", text_color=_SUBTEXT,
-                      font=ctk.CTkFont("Segoe UI", 10),
+                      font=ctk.CTkFont("Segoe UI", 11),
                       corner_radius=8, height=34).pack(side="left", padx=(8, 0))
 
         self.lbl_contagem = ctk.CTkLabel(frame, text="",
-                                          font=ctk.CTkFont("Segoe UI", 9),
+                                          font=ctk.CTkFont("Segoe UI", 11),
                                           text_color=_SUBTEXT)
-        self.lbl_contagem.pack(anchor="w", padx=16, pady=(2, 0))
+        self.lbl_contagem.grid(row=1, column=0, sticky="w", padx=16, pady=(2, 0))
 
-        # Nicho card
-        nc = ctk.CTkFrame(frame, fg_color=_PANEL2, corner_radius=12)
-        nc.pack(fill="x", padx=16, pady=6)
+        # Nicho card — row 2
+        nc = ctk.CTkFrame(frame, fg_color=_PANEL2, corner_radius=6)
+        nc.grid(row=2, column=0, sticky="ew", padx=16, pady=6)
         ctk.CTkLabel(nc, text="NICHO",
-                     font=ctk.CTkFont("Segoe UI", 9, "bold"),
-                     text_color=_SUBTEXT).pack(anchor="w", padx=16, pady=(12, 6))
+                     font=ctk.CTkFont("Segoe UI", 11, "bold"),
+                     text_color=_SUBTEXT).pack(anchor="w", padx=16, pady=(8, 4))
 
         self.niche_seg = ctk.CTkSegmentedButton(
             nc, values=[NICHE_LABELS[n] for n in VALID_NICHES],
@@ -539,7 +541,7 @@ class App(ctk.CTk, TkinterDnD.DnDWrapper):
             selected_hover_color=_ORANGE_HOVER,
             unselected_color=_BORDER, unselected_hover_color="#1E3566",
             text_color=_WHITE,
-            font=ctk.CTkFont("Segoe UI", 10, "bold"),
+            font=ctk.CTkFont("Segoe UI", 11, "bold"),
             corner_radius=8, height=36)
         self.niche_seg.pack(fill="x", padx=16, pady=(0, 6))
         self.niche_seg.set(NICHE_LABELS[self.niche_var.get()])
@@ -547,34 +549,35 @@ class App(ctk.CTk, TkinterDnD.DnDWrapper):
         ctk.CTkButton(nc, text="⚙   Configurar MiniMax",
                       command=self._open_config_modal,
                       fg_color="transparent", hover_color=_BORDER,
-                      text_color=_SUBTEXT, font=ctk.CTkFont("Segoe UI", 9),
+                      text_color=_SUBTEXT, font=ctk.CTkFont("Segoe UI", 11),
                       anchor="e", height=26, corner_radius=6).pack(
-                          anchor="e", padx=16, pady=(0, 10))
+                          anchor="e", padx=16, pady=(0, 8))
 
-        # Progress + status
+        # Progress + status — row 3
+        pf = ctk.CTkFrame(frame, fg_color="transparent")
+        pf.grid(row=3, column=0, sticky="ew", padx=16, pady=(6, 0))
         self.progress = ctk.CTkProgressBar(
-            frame, fg_color=_BORDER, progress_color=_ORANGE,
+            pf, fg_color=_BORDER, progress_color=_ORANGE,
             corner_radius=4, height=6)
-        self.progress.pack(fill="x", padx=16, pady=(6, 0))
+        self.progress.pack(fill="x")
         self.progress.set(0)
-
         self.lbl_status = ctk.CTkLabel(
-            frame, text="Aguardando...",
-            font=ctk.CTkFont("Segoe UI", 9), text_color=_SUBTEXT)
-        self.lbl_status.pack(anchor="w", padx=16, pady=(3, 0))
+            pf, text="Aguardando...",
+            font=ctk.CTkFont("Segoe UI", 11), text_color=_SUBTEXT)
+        self.lbl_status.pack(anchor="w", pady=(3, 0))
         self.status_var.trace_add("write", lambda *_: self.after(
             0, lambda: self.lbl_status.configure(text=self.status_var.get())))
 
-        # Log
+        # Log — row 4 (expande)
         self.log_text = ctk.CTkTextbox(
             frame, fg_color=_PANEL2, text_color="#CBD5E1",
-            font=ctk.CTkFont("Consolas", 9), corner_radius=10,
+            font=ctk.CTkFont("Consolas", 10), corner_radius=10,
             border_width=0, state="disabled", wrap="word")
-        self.log_text.pack(fill="both", expand=True, padx=16, pady=8)
+        self.log_text.grid(row=4, column=0, sticky="nsew", padx=16, pady=8)
 
-        # Botões
+        # Botões — row 5
         br = ctk.CTkFrame(frame, fg_color="transparent")
-        br.pack(fill="x", padx=16, pady=(0, 14))
+        br.grid(row=5, column=0, sticky="ew", padx=16, pady=(0, 8))
         self.btn_processar = ctk.CTkButton(
             br, text="PROCESSAR", command=self._iniciar_processamento,
             fg_color=_ORANGE, hover_color=_ORANGE_HOVER,
@@ -584,7 +587,7 @@ class App(ctk.CTk, TkinterDnD.DnDWrapper):
         self.btn_abrir = ctk.CTkButton(
             br, text="Abrir Processados", command=self._abrir_processados,
             fg_color=_BORDER, hover_color="#1E3566", text_color=_SUBTEXT,
-            font=ctk.CTkFont("Segoe UI", 10),
+            font=ctk.CTkFont("Segoe UI", 11),
             corner_radius=10, height=46, state="disabled")
         self.btn_abrir.pack(side="left")
 
@@ -599,7 +602,7 @@ class App(ctk.CTk, TkinterDnD.DnDWrapper):
         win.title("Configuração MiniMax — Hack de Áudio")
         win.configure(fg_color=_NAVY)
         win.resizable(False, False)
-        win.geometry("520x660")
+        win.geometry("520x740")
         win.grab_set()
         self._config_modal = win
 
@@ -608,27 +611,27 @@ class App(ctk.CTk, TkinterDnD.DnDWrapper):
                      text_color=_WHITE).pack(anchor="w", padx=24, pady=(20, 2))
         ctk.CTkLabel(win,
                      text="Crie sua conta em minimax.io/platform e cole as credenciais abaixo.",
-                     font=ctk.CTkFont("Segoe UI", 10),
+                     font=ctk.CTkFont("Segoe UI", 11),
                      text_color=_SUBTEXT, wraplength=460).pack(anchor="w", padx=24)
 
-        cf = ctk.CTkFrame(win, fg_color=_PANEL, corner_radius=12)
+        cf = ctk.CTkFrame(win, fg_color=_PANEL, corner_radius=6)
         cf.pack(fill="x", padx=24, pady=14)
 
         ctk.CTkLabel(cf, text="API KEY",
-                     font=ctk.CTkFont("Segoe UI", 9, "bold"),
+                     font=ctk.CTkFont("Segoe UI", 11, "bold"),
                      text_color=_SUBTEXT).pack(anchor="w", padx=16, pady=(12, 2))
         self.entry_apikey = ctk.CTkEntry(cf, fg_color=_BORDER, text_color=_WHITE,
                                           border_color=_BORDER, show="*",
-                                          font=ctk.CTkFont("Segoe UI", 10),
+                                          font=ctk.CTkFont("Segoe UI", 11),
                                           height=36, corner_radius=8)
-        self.entry_apikey.pack(fill="x", padx=16, pady=(0, 10))
+        self.entry_apikey.pack(fill="x", padx=16, pady=(0, 8))
 
         ctk.CTkLabel(cf, text="GROUP ID  (número longo 18-19 dígitos)",
-                     font=ctk.CTkFont("Segoe UI", 9, "bold"),
+                     font=ctk.CTkFont("Segoe UI", 11, "bold"),
                      text_color=_SUBTEXT).pack(anchor="w", padx=16)
         self.entry_groupid = ctk.CTkEntry(cf, fg_color=_BORDER, text_color=_WHITE,
                                            border_color=_BORDER,
-                                           font=ctk.CTkFont("Segoe UI", 10),
+                                           font=ctk.CTkFont("Segoe UI", 11),
                                            height=36, corner_radius=8)
         self.entry_groupid.pack(fill="x", padx=16, pady=(2, 0))
 
@@ -636,22 +639,22 @@ class App(ctk.CTk, TkinterDnD.DnDWrapper):
         br_cred.pack(fill="x", padx=16, pady=(12, 14))
         ctk.CTkButton(br_cred, text="Salvar", command=self._salvar_credenciais,
                       fg_color=_ORANGE, hover_color=_ORANGE_HOVER,
-                      font=ctk.CTkFont("Segoe UI", 10, "bold"),
+                      font=ctk.CTkFont("Segoe UI", 11, "bold"),
                       corner_radius=8, height=34).pack(side="left")
         ctk.CTkButton(br_cred, text="Testar Credenciais",
                       command=self._testar_credenciais,
                       fg_color=_BORDER, hover_color="#1E3566", text_color=_SUBTEXT,
-                      font=ctk.CTkFont("Segoe UI", 10),
+                      font=ctk.CTkFont("Segoe UI", 11),
                       corner_radius=8, height=34).pack(side="left", padx=(8, 0))
 
         sr = ctk.CTkFrame(win, fg_color="transparent")
         sr.pack(fill="x", padx=24)
         self.lbl_cred_status = ctk.CTkLabel(sr, text="",
-                                             font=ctk.CTkFont("Segoe UI", 10),
+                                             font=ctk.CTkFont("Segoe UI", 11),
                                              text_color=_WHITE)
         self.lbl_cred_status.pack(side="left")
         self.lbl_balance = ctk.CTkLabel(sr, text="",
-                                         font=ctk.CTkFont("Segoe UI", 10),
+                                         font=ctk.CTkFont("Segoe UI", 11),
                                          text_color=_SUBTEXT)
         self.lbl_balance.pack(side="left", padx=(12, 0))
 
@@ -663,10 +666,10 @@ class App(ctk.CTk, TkinterDnD.DnDWrapper):
                      text_color=_WHITE).pack(anchor="w", padx=24)
         ctk.CTkLabel(win,
                      text="Gera 32 áudios via MiniMax TTS (~$7, feito uma única vez).",
-                     font=ctk.CTkFont("Segoe UI", 10),
+                     font=ctk.CTkFont("Segoe UI", 11),
                      text_color=_SUBTEXT).pack(anchor="w", padx=24, pady=(4, 10))
 
-        sf = ctk.CTkFrame(win, fg_color=_PANEL, corner_radius=12)
+        sf = ctk.CTkFrame(win, fg_color=_PANEL, corner_radius=6)
         sf.pack(fill="x", padx=24)
         self.nicho_status_labels = {}
         nr = ctk.CTkFrame(sf, fg_color="transparent")
@@ -675,16 +678,16 @@ class App(ctk.CTk, TkinterDnD.DnDWrapper):
             col = ctk.CTkFrame(nr, fg_color="transparent")
             col.pack(side="left", expand=True)
             ctk.CTkLabel(col, text=NICHE_LABELS[niche],
-                         font=ctk.CTkFont("Segoe UI", 9, "bold"),
+                         font=ctk.CTkFont("Segoe UI", 11, "bold"),
                          text_color=_SUBTEXT).pack()
             lbl = ctk.CTkLabel(col, text="—",
-                               font=ctk.CTkFont("Segoe UI", 9),
+                               font=ctk.CTkFont("Segoe UI", 11),
                                text_color=_SUBTEXT)
             lbl.pack()
             self.nicho_status_labels[niche] = lbl
 
         self.gen_log = ctk.CTkTextbox(win, fg_color=_PANEL, text_color="#CBD5E1",
-                                       font=ctk.CTkFont("Consolas", 9),
+                                       font=ctk.CTkFont("Consolas", 10),
                                        corner_radius=10, border_width=0,
                                        state="disabled", height=100)
         self.gen_log.pack(fill="both", expand=True, padx=24, pady=10)
@@ -877,7 +880,7 @@ class App(ctk.CTk, TkinterDnD.DnDWrapper):
     def _limpar_videos(self):
         self.videos = []
         self.lbl_contagem.configure(text="", text_color=_SUBTEXT)
-        self.drop_zone.configure(text="  Arraste os vídeos aqui   ou", text_color=_SUBTEXT)
+        self.drop_zone.configure(text="  📂  Arraste os vídeos aqui  ou  clique em Selecionar", text_color=_SUBTEXT)
         self.btn_processar.configure(state="disabled")
         self.btn_abrir.configure(state="disabled", fg_color=_BORDER, text_color=_SUBTEXT)
         self.progress.set(0)
@@ -1024,17 +1027,19 @@ class App(ctk.CTk, TkinterDnD.DnDWrapper):
 
     def _build_tab_comprimir(self, frame):
         frame.configure(fg_color=_PANEL)
+        frame.grid_rowconfigure(6, weight=1)   # linha do log expande
+        frame.grid_columnconfigure(0, weight=1)
         self.comp_videos        = []
         self.comp_processando   = False
         self.comp_status_var    = tk.StringVar(value="Aguardando...")
         self._comp_progress_max = 1
         self.comp_out_var       = tk.StringVar(value="Mesma pasta do video")
 
-        # GPU label
+        # GPU label — row 0
         self.lbl_gpu = ctk.CTkLabel(frame, text="Detectando encoder...",
                                      font=ctk.CTkFont("Segoe UI", 9, slant="italic"),
                                      text_color=_SUBTEXT)
-        self.lbl_gpu.pack(anchor="w", padx=16, pady=(10, 4))
+        self.lbl_gpu.grid(row=0, column=0, sticky="w", padx=16, pady=(10, 4))
         def _detect():
             enc, name = get_gpu_encoder()
             def _show():
@@ -1049,44 +1054,43 @@ class App(ctk.CTk, TkinterDnD.DnDWrapper):
             self.after(0, _show)
         threading.Thread(target=_detect, daemon=True).start()
 
-        # Videos card
-        vc = ctk.CTkFrame(frame, fg_color=_PANEL2, corner_radius=12)
-        vc.pack(fill="x", padx=16, pady=(0, 6))
+        # Videos card — row 1
+        vc = ctk.CTkFrame(frame, fg_color=_PANEL2, corner_radius=6)
+        vc.grid(row=1, column=0, sticky="ew", padx=16, pady=(0, 6))
         ctk.CTkLabel(vc, text="VÍDEOS",
-                     font=ctk.CTkFont("Segoe UI", 9, "bold"),
-                     text_color=_SUBTEXT).pack(anchor="w", padx=16, pady=(12, 4))
+                     font=ctk.CTkFont("Segoe UI", 11, "bold"),
+                     text_color=_SUBTEXT).pack(anchor="w", padx=16, pady=(8, 3))
 
         self.comp_drop_zone = ctk.CTkLabel(
-            vc, text="  Arraste os vídeos aqui   ou",
-            font=ctk.CTkFont("Segoe UI", 10), text_color=_SUBTEXT,
+            vc, text="  📂  Arraste os vídeos aqui  ou  clique em Selecionar",
+            font=ctk.CTkFont("Segoe UI", 11), text_color=_SUBTEXT,
             fg_color=_BORDER, corner_radius=8, height=52, cursor="hand2")
         self.comp_drop_zone.pack(fill="x", padx=16, pady=(0, 8))
         self.comp_drop_zone.drop_target_register(DND_FILES)
         self.comp_drop_zone.dnd_bind("<<Drop>>", self._comp_on_drop)
 
         cbr = ctk.CTkFrame(vc, fg_color="transparent")
-        cbr.pack(fill="x", padx=16, pady=(0, 12))
+        cbr.pack(fill="x", padx=16, pady=(0, 8))
         ctk.CTkButton(cbr, text="Selecionar Vídeos", command=self._comp_selecionar,
                       fg_color=_ORANGE, hover_color=_ORANGE_HOVER,
-                      font=ctk.CTkFont("Segoe UI", 10, "bold"),
+                      font=ctk.CTkFont("Segoe UI", 11, "bold"),
                       corner_radius=8, height=34).pack(side="left")
         ctk.CTkButton(cbr, text="Limpar", command=self._comp_limpar,
                       fg_color=_BORDER, hover_color="#1E3566", text_color=_SUBTEXT,
-                      font=ctk.CTkFont("Segoe UI", 10),
+                      font=ctk.CTkFont("Segoe UI", 11),
                       corner_radius=8, height=34).pack(side="left", padx=(8, 0))
 
         self.comp_lbl_contagem = ctk.CTkLabel(frame, text="",
-                                               font=ctk.CTkFont("Segoe UI", 9),
+                                               font=ctk.CTkFont("Segoe UI", 11),
                                                text_color=_SUBTEXT)
-        self.comp_lbl_contagem.pack(anchor="w", padx=16, pady=(2, 0))
+        self.comp_lbl_contagem.grid(row=2, column=0, sticky="w", padx=16, pady=(2, 0))
 
-        # Qualidade card
-        qc = ctk.CTkFrame(frame, fg_color=_PANEL2, corner_radius=12)
-        qc.pack(fill="x", padx=16, pady=6)
+        # Qualidade card — row 3
+        qc = ctk.CTkFrame(frame, fg_color=_PANEL2, corner_radius=6)
+        qc.grid(row=3, column=0, sticky="ew", padx=16, pady=6)
         ctk.CTkLabel(qc, text="QUALIDADE",
-                     font=ctk.CTkFont("Segoe UI", 9, "bold"),
-                     text_color=_SUBTEXT).pack(anchor="w", padx=16, pady=(12, 6))
-
+                     font=ctk.CTkFont("Segoe UI", 11, "bold"),
+                     text_color=_SUBTEXT).pack(anchor="w", padx=16, pady=(8, 4))
         self.comp_quality_var = tk.StringVar(value="Facebook Ads")
         self.comp_quality_seg = ctk.CTkSegmentedButton(
             qc, values=list(COMPRESS_PRESETS.keys()),
@@ -1094,35 +1098,39 @@ class App(ctk.CTk, TkinterDnD.DnDWrapper):
             fg_color=_BORDER, selected_color=_ORANGE,
             selected_hover_color=_ORANGE_HOVER,
             unselected_color=_BORDER, unselected_hover_color="#1E3566",
-            text_color=_WHITE, font=ctk.CTkFont("Segoe UI", 9, "bold"),
+            text_color=_WHITE, font=ctk.CTkFont("Segoe UI", 11, "bold"),
             corner_radius=8, height=34)
-        self.comp_quality_seg.pack(fill="x", padx=16, pady=(0, 12))
+        self.comp_quality_seg.pack(fill="x", padx=16, pady=(0, 8))
         self.comp_quality_seg.set("Facebook Ads")
 
-        # Destino card
-        dc = ctk.CTkFrame(frame, fg_color=_PANEL2, corner_radius=12)
-        dc.pack(fill="x", padx=16, pady=(0, 6))
+        # Destino + Paralelos — row 4 (lado a lado para economizar espaço)
+        row4 = ctk.CTkFrame(frame, fg_color="transparent")
+        row4.grid(row=4, column=0, sticky="ew", padx=16, pady=(0, 6))
+        row4.grid_columnconfigure(0, weight=3)
+        row4.grid_columnconfigure(1, weight=1)
+
+        dc = ctk.CTkFrame(row4, fg_color=_PANEL2, corner_radius=6)
+        dc.grid(row=0, column=0, sticky="nsew", padx=(0, 6))
         ctk.CTkLabel(dc, text="DESTINO",
-                     font=ctk.CTkFont("Segoe UI", 9, "bold"),
-                     text_color=_SUBTEXT).pack(anchor="w", padx=16, pady=(12, 6))
+                     font=ctk.CTkFont("Segoe UI", 11, "bold"),
+                     text_color=_SUBTEXT).pack(anchor="w", padx=12, pady=(10, 4))
         dr = ctk.CTkFrame(dc, fg_color="transparent")
-        dr.pack(fill="x", padx=16, pady=(0, 12))
+        dr.pack(fill="x", padx=12, pady=(0, 8))
         self.comp_dest_entry = ctk.CTkEntry(
             dr, fg_color=_BORDER, text_color=_WHITE, border_color=_BORDER,
-            font=ctk.CTkFont("Segoe UI", 10), state="disabled", height=34, corner_radius=8)
+            font=ctk.CTkFont("Segoe UI", 11), state="disabled", height=32, corner_radius=8)
         self.comp_dest_entry.pack(side="left", fill="x", expand=True)
         self._set_comp_dest("Mesma pasta do vídeo")
         ctk.CTkButton(dr, text="Escolher", command=self._comp_pick_output,
                       fg_color=_BORDER, hover_color="#1E3566", text_color=_SUBTEXT,
-                      font=ctk.CTkFont("Segoe UI", 10),
-                      corner_radius=8, height=34, width=80).pack(side="left", padx=(8, 0))
+                      font=ctk.CTkFont("Segoe UI", 11),
+                      corner_radius=8, height=32, width=70).pack(side="left", padx=(6, 0))
 
-        # Paralelos card
-        pc = ctk.CTkFrame(frame, fg_color=_PANEL2, corner_radius=12)
-        pc.pack(fill="x", padx=16, pady=(0, 6))
-        ctk.CTkLabel(pc, text="VÍDEOS SIMULTÂNEOS",
-                     font=ctk.CTkFont("Segoe UI", 9, "bold"),
-                     text_color=_SUBTEXT).pack(anchor="w", padx=16, pady=(12, 4))
+        pc = ctk.CTkFrame(row4, fg_color=_PANEL2, corner_radius=6)
+        pc.grid(row=0, column=1, sticky="nsew")
+        ctk.CTkLabel(pc, text="PARALELOS",
+                     font=ctk.CTkFont("Segoe UI", 11, "bold"),
+                     text_color=_SUBTEXT).pack(anchor="w", padx=12, pady=(10, 4))
         self.comp_workers_var = tk.IntVar(value=2)
         self.comp_workers_seg = ctk.CTkSegmentedButton(
             pc, values=["1", "2", "3", "4"],
@@ -1130,38 +1138,39 @@ class App(ctk.CTk, TkinterDnD.DnDWrapper):
             fg_color=_BORDER, selected_color=_ORANGE,
             selected_hover_color=_ORANGE_HOVER,
             unselected_color=_BORDER, unselected_hover_color="#1E3566",
-            text_color=_WHITE, font=ctk.CTkFont("Segoe UI", 10, "bold"),
-            corner_radius=8, height=34)
-        self.comp_workers_seg.pack(anchor="w", padx=16, pady=(0, 4))
+            text_color=_WHITE, font=ctk.CTkFont("Segoe UI", 11, "bold"),
+            corner_radius=8, height=32)
+        self.comp_workers_seg.pack(fill="x", padx=12, pady=(0, 6))
         self.comp_workers_seg.set("2")
-        ctk.CTkLabel(pc, text="Recomendado: 2.  Com GPU pode usar 3 ou 4.",
-                     font=ctk.CTkFont("Segoe UI", 8, slant="italic"),
-                     text_color=_SUBTEXT).pack(anchor="w", padx=16, pady=(0, 10))
+        ctk.CTkLabel(pc, text="GPU: use 3 ou 4",
+                     font=ctk.CTkFont("Segoe UI", 9, slant="italic"),
+                     text_color=_SUBTEXT).pack(anchor="w", padx=12, pady=(0, 8))
 
-        # Progress + status
+        # Progress + status — row 5
+        pf = ctk.CTkFrame(frame, fg_color="transparent")
+        pf.grid(row=5, column=0, sticky="ew", padx=16, pady=(4, 0))
         self.comp_progress = ctk.CTkProgressBar(
-            frame, fg_color=_BORDER, progress_color=_ORANGE,
+            pf, fg_color=_BORDER, progress_color=_ORANGE,
             corner_radius=4, height=6)
-        self.comp_progress.pack(fill="x", padx=16, pady=(6, 0))
+        self.comp_progress.pack(fill="x")
         self.comp_progress.set(0)
-
         self.comp_lbl_status = ctk.CTkLabel(
-            frame, text="Aguardando...",
-            font=ctk.CTkFont("Segoe UI", 9), text_color=_SUBTEXT)
-        self.comp_lbl_status.pack(anchor="w", padx=16, pady=(3, 0))
+            pf, text="Aguardando...",
+            font=ctk.CTkFont("Segoe UI", 11), text_color=_SUBTEXT)
+        self.comp_lbl_status.pack(anchor="w", pady=(3, 0))
         self.comp_status_var.trace_add("write", lambda *_: self.after(
             0, lambda: self.comp_lbl_status.configure(text=self.comp_status_var.get())))
 
-        # Log
+        # Log — row 6 (expande)
         self.comp_log = ctk.CTkTextbox(
             frame, fg_color=_PANEL2, text_color="#CBD5E1",
-            font=ctk.CTkFont("Consolas", 9), corner_radius=10,
+            font=ctk.CTkFont("Consolas", 10), corner_radius=10,
             border_width=0, state="disabled", wrap="word")
-        self.comp_log.pack(fill="both", expand=True, padx=16, pady=8)
+        self.comp_log.grid(row=6, column=0, sticky="nsew", padx=16, pady=8)
 
-        # Botões
+        # Botões — row 7
         br = ctk.CTkFrame(frame, fg_color="transparent")
-        br.pack(fill="x", padx=16, pady=(0, 14))
+        br.grid(row=7, column=0, sticky="ew", padx=16, pady=(0, 8))
         self.comp_btn = ctk.CTkButton(
             br, text="COMPRIMIR", command=self._comp_iniciar,
             fg_color=_ORANGE, hover_color=_ORANGE_HOVER,
@@ -1171,7 +1180,7 @@ class App(ctk.CTk, TkinterDnD.DnDWrapper):
         self.comp_btn_abrir = ctk.CTkButton(
             br, text="Abrir Pasta", command=self._comp_abrir_pasta,
             fg_color=_BORDER, hover_color="#1E3566", text_color=_SUBTEXT,
-            font=ctk.CTkFont("Segoe UI", 10),
+            font=ctk.CTkFont("Segoe UI", 11),
             corner_radius=10, height=46, state="disabled")
         self.comp_btn_abrir.pack(side="left")
 
@@ -1225,7 +1234,7 @@ class App(ctk.CTk, TkinterDnD.DnDWrapper):
     def _comp_limpar(self):
         self.comp_videos = []
         self.comp_lbl_contagem.configure(text="", text_color=_SUBTEXT)
-        self.comp_drop_zone.configure(text="  Arraste os vídeos aqui   ou", text_color=_SUBTEXT)
+        self.comp_drop_zone.configure(text="  📂  Arraste os vídeos aqui  ou  clique em Selecionar", text_color=_SUBTEXT)
         self.comp_btn.configure(state="disabled")
         self.comp_btn_abrir.configure(state="disabled", fg_color=_BORDER, text_color=_SUBTEXT)
         self.comp_progress.set(0)
