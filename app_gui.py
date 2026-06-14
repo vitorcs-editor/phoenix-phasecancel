@@ -265,13 +265,39 @@ def synthesize(text, voice_id, api_key, group_id):
     return bytes.fromhex(audio_hex)
 
 def save_log(msg):
-    """Salva log em arquivo no USER_DATA."""
     try:
         log_file = USER_DATA / "processamentos.log"
         with open(log_file, "a", encoding="utf-8") as f:
             f.write(msg + "\n")
     except Exception:
         pass
+
+def save_historico(video_name, niche, resultado):
+    """Salva histórico de processamentos em CSV."""
+    import datetime
+    try:
+        csv_file = USER_DATA / "historico.csv"
+        escrever_header = not csv_file.exists()
+        with open(csv_file, "a", encoding="utf-8", newline="") as f:
+            if escrever_header:
+                f.write("data,hora,video,nicho,resultado\n")
+            ts = datetime.datetime.now()
+            f.write(f"{ts.strftime('%Y-%m-%d')},{ts.strftime('%H:%M:%S')},"
+                    f'"{video_name}",{niche},{resultado}\n')
+    except Exception:
+        pass
+
+def has_audio_track(video_path):
+    """Verifica se o vídeo tem trilha de áudio."""
+    ff = str(FFMPEG_BIN) if FFMPEG_BIN.exists() else "ffmpeg"
+    try:
+        result = subprocess.run(
+            [ff, "-i", str(video_path)],
+            capture_output=True, text=True, timeout=10,
+            creationflags=NO_WINDOW)
+        return "Audio:" in result.stderr
+    except Exception:
+        return True  # assume tem áudio em caso de dúvida
 
 def notify_windows(title, message):
     """Notificacao balao no Windows."""
@@ -522,10 +548,13 @@ class App(ctk.CTk, TkinterDnD.DnDWrapper):
                       font=ctk.CTkFont("Segoe UI", 11),
                       corner_radius=8, height=34).pack(side="left", padx=(8, 0))
 
-        self.lbl_contagem = ctk.CTkLabel(frame, text="",
-                                          font=ctk.CTkFont("Segoe UI", 11),
-                                          text_color=_SUBTEXT)
-        self.lbl_contagem.grid(row=1, column=0, sticky="w", padx=16, pady=(2, 0))
+        # Lista de vídeos com remoção individual — row 1
+        self.video_list_frame = ctk.CTkScrollableFrame(
+            frame, fg_color=_PANEL2, corner_radius=6, height=80,
+            scrollbar_button_color=_BORDER, scrollbar_button_hover_color=_ORANGE)
+        self.video_list_frame.grid(row=1, column=0, sticky="ew", padx=16, pady=(4, 0))
+        self.video_list_frame.grid_columnconfigure(0, weight=1)
+        self.video_list_frame.grid_remove()
 
         # Nicho card — row 2
         nc = ctk.CTkFrame(frame, fg_color=_PANEL2, corner_radius=6)
@@ -847,8 +876,10 @@ class App(ctk.CTk, TkinterDnD.DnDWrapper):
         self._carregar_videos(videos)
 
     def _selecionar_videos(self):
+        cfg = load_config()
         arquivos = filedialog.askopenfilenames(
-            title="Selecione os videos",
+            title="Selecione os vídeos",
+            initialdir=cfg.get("last_folder"),
             filetypes=[("Videos", "*.mp4 *.mkv *.mov *.avi *.m4v *.webm"),
                        ("Todos os arquivos", "*.*")])
         if not arquivos:
@@ -857,30 +888,61 @@ class App(ctk.CTk, TkinterDnD.DnDWrapper):
                          if not Path(f).stem.endswith("_FaD")
                          and not Path(f).stem.endswith("_FaDW")])
         if not videos:
-            messagebox.showwarning("Sem videos validos", "Nenhum video valido selecionado.")
+            messagebox.showwarning("Sem vídeos válidos", "Nenhum vídeo válido selecionado.")
             return
+        save_config({"last_folder": str(videos[0].parent)})
         self._carregar_videos(videos)
 
     def _carregar_videos(self, videos):
-        self.videos = videos
-        preview = " | ".join([v.name for v in videos[:3]])
-        if len(videos) > 3:
-            preview += f" ... (+{len(videos)-3})"
-        self.lbl_contagem.configure(text=preview, text_color=_SUBTEXT)
-        self.drop_zone.configure(text=f"  {len(videos)} vídeo(s) carregado(s)",
-                                  text_color=_SUCCESS)
+        self.videos = list(videos)
+        self._atualizar_lista_videos()
+        self.drop_zone.configure(
+            text=f"  ✔  {len(self.videos)} vídeo(s) carregado(s)", text_color=_SUCCESS)
         self.btn_processar.configure(state="normal")
         self.progress.set(0)
-        self.status_var.set(f"Pronto — {len(videos)} vídeo(s)")
+        self.status_var.set(f"Pronto — {len(self.videos)} vídeo(s)")
         self._log_clear()
-        self._log(f"{len(videos)} vídeo(s) selecionado(s):")
-        for v in videos:
+        self._log(f"{len(self.videos)} vídeo(s) selecionado(s):")
+        for v in self.videos:
             self._log(f"  - {v.name}")
+
+    def _atualizar_lista_videos(self):
+        for w in self.video_list_frame.winfo_children():
+            w.destroy()
+        if not self.videos:
+            self.video_list_frame.grid_remove()
+            return
+        self.video_list_frame.grid()
+        for i, v in enumerate(self.videos):
+            row = ctk.CTkFrame(self.video_list_frame, fg_color="transparent")
+            row.grid(row=i, column=0, sticky="ew", pady=1)
+            row.grid_columnconfigure(0, weight=1)
+            ctk.CTkLabel(row, text=f"  {v.name}",
+                         font=ctk.CTkFont("Segoe UI", 10),
+                         text_color=_WHITE, anchor="w").grid(row=0, column=0, sticky="ew")
+            ctk.CTkButton(row, text="✕", width=24, height=22,
+                          fg_color="transparent", hover_color=_ERROR,
+                          text_color=_SUBTEXT, font=ctk.CTkFont("Segoe UI", 10),
+                          command=lambda idx=i: self._remover_video(idx),
+                          corner_radius=4).grid(row=0, column=1, padx=(4, 4))
+
+    def _remover_video(self, idx):
+        if 0 <= idx < len(self.videos):
+            self.videos.pop(idx)
+        if not self.videos:
+            self._limpar_videos()
+        else:
+            self._atualizar_lista_videos()
+            self.drop_zone.configure(
+                text=f"  ✔  {len(self.videos)} vídeo(s) carregado(s)", text_color=_SUCCESS)
+            self.status_var.set(f"Pronto — {len(self.videos)} vídeo(s)")
 
     def _limpar_videos(self):
         self.videos = []
-        self.lbl_contagem.configure(text="", text_color=_SUBTEXT)
-        self.drop_zone.configure(text="  📂  Arraste os vídeos aqui  ou  clique em Selecionar", text_color=_SUBTEXT)
+        self._atualizar_lista_videos()
+        self.drop_zone.configure(
+            text="  📂  Arraste os vídeos aqui  ou  clique em Selecionar",
+            text_color=_SUBTEXT)
         self.btn_processar.configure(state="disabled")
         self.btn_abrir.configure(state="disabled", fg_color=_BORDER, text_color=_SUBTEXT)
         self.progress.set(0)
@@ -965,24 +1027,44 @@ class App(ctk.CTk, TkinterDnD.DnDWrapper):
         ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         save_log(f"\n=== {ts} | Nicho: {niche} | {total} video(s) ===")
 
+        # Validação de áudio antes de começar
+        sem_audio = [v.name for v in self.videos if not has_audio_track(v)]
+        if sem_audio:
+            lista = "\n".join(f"  • {n}" for n in sem_audio)
+            continuar = messagebox.askyesno(
+                "Vídeos sem áudio detectados",
+                f"Os seguintes vídeos não têm trilha de áudio:\n\n{lista}\n\n"
+                "Deseja continuar mesmo assim?\n(esses vídeos vão gerar erro)")
+            if not continuar:
+                self.processando = False
+                self.after(0, lambda: self.btn_processar.configure(
+                    state="normal", text="PROCESSAR", fg_color=_ORANGE))
+                self.after(0, lambda: self.title("Phoenix PhaseCancel"))
+                return
+
         for i, video in enumerate(self.videos, 1):
+            titulo = f"[{i}/{total}] Phoenix PhaseCancel"
+            self.after(0, lambda t=titulo: self.title(t))
             self.after(0, lambda s=f"Processando {i} de {total}: {video.name}":
                        self.status_var.set(s))
             self._log(f"[{i}/{total}] {video.name}")
             try:
                 fad, fadw, skipped = process_one(video, niche)
                 if skipped:
-                    self._log(f"  [PULADO] ja processado")
+                    self._log(f"  [PULADO] já processado")
                     save_log(f"  PULADO: {video.name}")
+                    save_historico(video.name, niche, "pulado")
                     skip += 1
                 else:
                     self._log(f"  [OK] {fad.name}")
                     self._log(f"  [OK] {fadw.name}")
                     save_log(f"  OK: {video.name}")
+                    save_historico(video.name, niche, "ok")
                     ok += 1
             except Exception as e:
                 self._log(f"  [ERRO] {e}")
                 save_log(f"  ERRO: {video.name} — {e}")
+                save_historico(video.name, niche, f"erro")
                 fail += 1
             self.after(0, lambda v=i: self.progress.set(v / self._progress_max))
 
@@ -1006,6 +1088,7 @@ class App(ctk.CTk, TkinterDnD.DnDWrapper):
             notify_windows("Phoenix PhaseCancel", f"{ok} OK, {fail} com erro")
 
         self.processando = False
+        self.after(0, lambda: self.title("Phoenix PhaseCancel"))
         self.after(0, lambda: self.btn_processar.configure(
             state="normal", text="PROCESSAR", fg_color=_ORANGE))
         if self.videos:
@@ -1205,14 +1288,18 @@ class App(ctk.CTk, TkinterDnD.DnDWrapper):
         self._comp_carregar(videos)
 
     def _comp_selecionar(self):
+        cfg = load_config()
         arquivos = filedialog.askopenfilenames(
             title="Selecione os videos",
+            initialdir=cfg.get("last_folder"),
             filetypes=[("Videos", "*.mp4 *.mkv *.mov *.avi *.m4v *.webm *.flv *.wmv"),
                        ("Todos", "*.*")])
         if not arquivos:
             return
         videos = sorted([Path(f) for f in arquivos
                          if "_comprimido" not in Path(f).stem])
+        if videos:
+            save_config({"last_folder": str(videos[0].parent)})
         self._comp_carregar(videos)
 
     def _comp_carregar(self, videos):
